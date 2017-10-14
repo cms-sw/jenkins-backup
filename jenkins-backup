@@ -38,13 +38,14 @@ if [ ! -f $pkey ] ; then pkey=${JENKINS_HOME}/.ssh/id_rsa-openstack ; fi
 for s in secret.key secret.key.not-so-secret secrets/master.key ; do
   key=$JENKINS_HOME/$s
   bkey=${key}.backup
-  if [ -f $bkey -a ! -f ${key}.enc ] ; then 
+  ekey=$GIT_DIR/${s}.enc
+  if [ -f $bkey -a -f $ekey ] ; then
     if [ $(diff $bkey $key | wc -l) -eq 0 ] ; then
       continue
     fi
   fi
   cp $key $bkey
-  openssl enc -aes-256-cbc -salt -in $key -out ${key}.enc -pass file:$pkey
+  openssl enc -aes-256-cbc -salt -in $key -out  ${ekey}.enc -pass file:$pkey
 done
 
 java -jar  $JENKINS_HOME/jenkins-cli.jar -i /home/jenkins/.ssh/id_dsa -s http://localhost:8080/jenkins -remoting groovy $scritp_dir/get_plugins.groovy | sort > $GIT_DIR/pluginslist
