@@ -1,0 +1,35 @@
+#!/bin/bash -ex
+JENKINS_HOME=$1
+REPO=$2
+script_dir=$(dirname $0)
+branch=$(java -jar ${JENKINS_HOME}/jenkins-cli.jar -s http://localhost:8080/jenkins version | cut -d. -f1,2 | sed 's|.$||;s|\.$|\.0|')
+if [ "X$branch" = "X" ] ; then 
+  echo "Error: Unable to find jenkins version"
+  exit 1
+fi
+GIT_BRANCH=jenkins${branch}
+GIT_DIR=${JENKINS_HOME}/plugin-ref/cmsjenkins-${branch}
+
+if [ ! -d $GIT_DIR ] ; then
+  git clone --depth 1 -b $GIT_BRANCH $REPO $GIT_DIR
+fi
+
+${script_dir}/install-plugins.sh $GIT_DIR/pluginslist
+
+rsync -av --delete ${JENKINS_HOME}/plugin-ref/plugins/ ${JENKINS_HOME}/plugins/
+for xml in $(ls $GIT_DIR/*.xml) ; do cp -f $xml $JENKINS_HOME/ ; done
+for dir in labels users nodes log scriptler jobs ; do
+  mkdir -p ${JENKINS_HOME}/${dir}
+  rsync -av $GIT_DIR/${dir}/ ${JENKINS_HOME}/${dir}/
+done
+
+for conf in $(${JENKINS_HOME}/jobs -mindepth 2 -maxdepth 2 -name 'config.xml' -type f) ; do
+  sed -i -e 's|<disabled>false|<disabled>true|' $conf
+done
+
+mkdir -p  ${JENKINS_HOME}/secrets
+pkey=${JENKINS_HOME}/slave_setup/cmsbot/.ssh/id_rsa-openstack
+if [ ! -f $pkey ] ; then pkey=${JENKINS_HOME}/.ssh/id_rsa-openstack ; fi
+for key in secret.key secret.key.not-so-secret secrets/master.key ; do 
+  openssl enc -d -aes-256-cbc -in $GIT_DIR/${key}.enc -out $JENKINS_HOME/$key -pass file:$pkey
+done

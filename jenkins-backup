@@ -1,0 +1,63 @@
+#!/bin/bash -ex
+scritp_dir=$(dirname $0)
+branch=$(java -jar ${JENKINS_HOME}/jenkins-cli.jar -i /home/jenkins/.ssh/id_dsa -s http://localhost:8080/jenkins version | cut -d. -f1,2 | sed 's|.$||;s|\.$|\.0|')
+GIT_BRANCH=jenkins${branch}
+GIT_DIR=${JENKINS_HOME}/gitlab/cmsjenkins-${branch}
+
+if [ ! -d $GIT_DIR ] ; then
+  git clone https://:@gitlab.cern.ch:8443/cms-sw/cmsjenkins.git $GIT_DIR
+fi
+cd $GIT_DIR
+if [ $(git branch -a | grep remotes/origin/${GIT_BRANCH} | wc -l) -gt 0 ] ; then
+  git checkout ${GIT_BRANCH} || true
+  git clean -fdx
+  git checkout -q --force $GIT_BRANCH
+  git reset --hard origin/$GIT_BRANCH
+  git pull --rebase
+else
+  git checkout --orphan ${GIT_BRANCH}
+  rm -rf * || true
+  touch README.md
+  git add -A
+  git commit -a -m "Init new branch ${GIT_BRANCH}"
+  git push origin ${GIT_BRANCH}
+fi
+
+for dir in labels users nodes log scriptler ; do
+  mkdir -p $GIT_DIR/$dir
+  rsync -av --delete --include="*.xml" --delete-excluded  --exclude='*/.git*' $JENKINS_HOME/$dir/ $GIT_DIR/$dir/
+done
+
+mkdir -p $GIT_DIR/jobs $GIT_DIR/secrets
+rsync -av --delete --delete-excluded --exclude="*builds*" --exclude="*/disk-usage.xml" $JENKINS_HOME/jobs/ $GIT_DIR/jobs/
+
+for xml in $(ls $JENKINS_HOME/*.xml) ; do cp -f $xml $GIT_DIR/ ; done
+
+pkey=${JENKINS_HOME}/slave_setup/cmsbot/.ssh/id_rsa-openstack
+if [ ! -f $pkey ] ; then pkey=${JENKINS_HOME}/.ssh/id_rsa-openstack ; fi
+for s in secret.key secret.key.not-so-secret secrets/master.key ; do
+  key=$JENKINS_HOME/$s
+  bkey=${key}.backup
+  if [ -f $bkey ] ; then 
+    if [ $(diff $bkey $key | wc -l) -eq 0 ] ; then
+      continue
+    fi
+  fi
+  cp $key $bkey
+  openssl enc -aes-256-cbc -salt -in $key -out ${key}.enc -pass file:$pkey
+done
+
+java -jar  $JENKINS_HOME/jenkins-cli.jar -i /home/jenkins/.ssh/id_dsa -s http://localhost:8080/jenkins -remoting groovy $scritp_dir/get_plugins.groovy | sort > $GIT_DIR/pluginslist
+
+if [ $(grep ':' $GIT_DIR/pluginslist | wc -l) -eq 0 ] ; then
+  echo "ERROR: unable to get plugins"
+  exit 1
+fi 
+git add . || true
+git commit -a -m "Updated Jenkins configuration ${GIT_BRANCH}" || true
+if [ $(git diff --name-only HEAD origin/$GIT_BRANCH | grep -v '^jobs/update-cmsjenkins-gitlab/' | wc -l) -gt 0 ] ; then
+  echo ">> Files changed"
+  git diff --name-only HEAD origin/$GIT_BRANCH
+  git push origin $GIT_BRANCH
+fi
+
