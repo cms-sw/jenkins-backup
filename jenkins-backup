@@ -38,7 +38,7 @@ if [ ! -f $pkey ] ; then pkey=${JENKINS_HOME}/.ssh/id_rsa-openstack ; fi
 for s in secret.key secret.key.not-so-secret secrets/master.key ; do
   key=$JENKINS_HOME/$s
   bkey=${key}.backup
-  if [ -f $bkey ] ; then 
+  if [ -f $bkey -a ! -f ${key}.enc ] ; then 
     if [ $(diff $bkey $key | wc -l) -eq 0 ] ; then
       continue
     fi
