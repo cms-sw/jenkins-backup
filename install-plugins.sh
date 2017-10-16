@@ -9,6 +9,7 @@ set -o pipefail
 
 REF_DIR=${REF:-/build/plugin-ref/plugins}
 FAILED="$REF_DIR/failed-plugins.txt"
+DEPS="$REF_DIR/deps-plugins.txt"
 JENKINS_UC=https://updates.jenkins.io
 let PARALLEL_JOBS=$(getconf _NPROCESSORS_ONLN)*2
 
@@ -53,15 +54,19 @@ download() {
 }
 
 doDownload() {
-    local plugin version url jpi
+    local plugin version url jpi cversion
     plugin="$1"
     version="$2"
     jpi="$(getArchiveFilename "$plugin")"
 
-    # If plugin already exists and is the same version do not download
-    if test -f "$jpi" && unzip -p "$jpi" META-INF/MANIFEST.MF | tr -d '\r' | grep "^Plugin-Version: ${version}$" > /dev/null; then
-        echo "Using provided plugin: $plugin"
-        return 0
+    if [ "$version" != "latest" ] ; then
+      if test -f "$jpi" ; then
+        cversion=$(unzip -p "$jpi" META-INF/MANIFEST.MF | tr -d '\r' | grep "^Plugin-Version:" | sed 's|^Plugin-Version: *||')
+        if [ "$(echo -e "$version\n$cversion" | sort | tail -1)" = "$cversion" ] ; then
+          echo "Using existing newer version: $plugin $version (existing: $cversion)"
+          return 0
+        fi
+      fi
     fi
 
     if [[ "$version" == "latest" && -n "$JENKINS_UC_LATEST" ]]; then
@@ -98,11 +103,8 @@ resolveDependencies() {
     dependencies="$(unzip -p "$jpi" META-INF/MANIFEST.MF | tr -d '\r' | tr '\n' '|' | sed -e 's#| ##g' | tr '|' '\n' | grep "^Plugin-Dependencies: " | sed -e 's#^Plugin-Dependencies: ##')"
 
     if [[ ! $dependencies ]]; then
-        echo " > $plugin has no dependencies"
         return
     fi
-
-    echo " > $plugin depends on $dependencies"
 
     IFS=',' read -r -a array <<< "$dependencies"
 
@@ -110,25 +112,11 @@ resolveDependencies() {
     do
         plugin="$(cut -d':' -f1 - <<< "$d")"
         if [[ $d == *"resolution:=optional"* ]]; then
-            echo "Skipping optional dependency $plugin"
-        else
-            local pluginInstalled
-            if pluginInstalled="$(echo "${bundledPlugins}" | grep "^${plugin}:")"; then
-                pluginInstalled="${pluginInstalled//[$'\r']}"
-                local versionInstalled; versionInstalled=$(versionFromPlugin "${pluginInstalled}")
-                local minVersion; minVersion=$(versionFromPlugin "${d}")
-                if versionLT "${versionInstalled}" "${minVersion}"; then
-                    echo "Upgrading bundled dependency $d ($minVersion > $versionInstalled)"
-                    download "$plugin" &
-                else
-                    echo "Skipping already bundled dependency $d ($minVersion <= $versionInstalled)"
-                fi
-            else
-                download "$plugin" &
-            fi
+            continue
+        elif [ ! -d $REF_DIR/${plugin}.lock ] ; then 
+            echo "$d" >> $DEPS
         fi
     done
-    wait
 }
 
 versionFromPlugin() {
@@ -152,8 +140,9 @@ main() {
     local plugins=()
 
     mkdir -p "$REF_DIR" || exit 1
-    rm -f $FAILED || true
-
+    rm -f $FAILED
+    rm -f $DEPS
+    touch $DEPS
     if [[ ($# -eq 0) ]]; then
       while read -r line; do plugins="$plugins $line" ; done
     elif [ -f $1 ] ; then
@@ -202,10 +191,6 @@ main() {
     echo
     echo "WAR bundled plugins:"
     echo "${bundledPlugins}"
-    echo
-    echo "Installed plugins:"
-    installedPlugins
-
     if [[ -f $FAILED ]]; then
         echo "Some plugins failed to download!" "$(<"$FAILED")" >&2
         for p in $(cat $FAILED | sed 's|i.*:  *||') ; do
@@ -214,9 +199,20 @@ main() {
         rm -f $FAILED
         exit 1
     fi
-
-    echo "Cleaning up locks"
-    rm -fr "$REF_DIR"/*.lock || true
 }
 
 main "$@"
+while [ -s $DEPS ] ; do
+  rm -f ${DEPS}.uniq
+  touch ${DEPS}.uniq
+  for p in $(cat $DEPS | sed -e 's|:.*$||' | sort -u) ; do
+    grep "^$p:" $DEPS | tail -1 >> ${DEPS}.uniq
+  done
+  echo "============== deps ========="
+  cat ${DEPS}.uniq
+  echo "----------------------------"
+  main "${DEPS}.uniq"
+done
+
+echo "Cleaning up locks"
+rm -fr "$REF_DIR"/*.lock || true
