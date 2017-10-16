@@ -13,7 +13,9 @@ GIT_DIR=${JENKINS_HOME}/plugin-ref/cmsjenkins-${branch}
 if [ ! -d $GIT_DIR ] ; then
   git clone --depth 1 -b $GIT_BRANCH $REPO $GIT_DIR
 fi
-
+for p in $(cat $GIT_DIR/pluginslist) ; do
+  rm -rf ${JENKINS_HOME}/plugin-ref/plugins/${p}.lock || true
+done
 ${script_dir}/install-plugins.sh $GIT_DIR/pluginslist
 
 rsync -av --delete ${JENKINS_HOME}/plugin-ref/plugins/ ${JENKINS_HOME}/plugins/
