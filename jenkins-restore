@@ -20,6 +20,7 @@ touch $GIT_DIR/plugins.filterred
 for p in $(cat $GIT_DIR/plugin.used) ; do
   grep "^$p:" $GIT_DIR/pluginslist >> $GIT_DIR/plugins.filterred || true
 done
+rm -rf ${JENKINS_HOME}/plugins/${p}.lock
 ${script_dir}/install-plugins.sh $GIT_DIR/plugins.filterred
 
 rsync -av --delete ${JENKINS_HOME}/plugin-ref/plugins/ ${JENKINS_HOME}/plugins/
