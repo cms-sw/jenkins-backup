@@ -17,7 +17,7 @@ fi
 find $GIT_DIR -name '*.xml' -type f | xargs grep ' plugin=' | sed 's|.* plugin="||;s|@.*||' | sort -u | grep -v '^pipeline-' > $GIT_DIR/plugin.used
 touch $GIT_DIR/plugins.filterred
 for p in $(cat $GIT_DIR/plugin.used) ; do
-  grep "^$p:" $GIT_DIR/pluginslist >> $GIT_DIR/plugins.filterred
+  grep "^$p:" $GIT_DIR/pluginslist >> $GIT_DIR/plugins.filterred || true
 done
 ${script_dir}/install-plugins.sh $GIT_DIR/plugins.filterred
 
