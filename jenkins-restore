@@ -16,7 +16,8 @@ fi
 for p in $(cat $GIT_DIR/pluginslist | sed 's|:.*||') ; do
   rm -rf ${JENKINS_HOME}/plugin-ref/plugins/${p}.lock || true
 done
-${script_dir}/install-plugins.sh $GIT_DIR/pluginslist
+grep -v '^pipeline\-' $GIT_DIR/pluginslist > $GIT_DIR/pluginslist.filter 
+${script_dir}/install-plugins.sh $GIT_DIR/pluginslist.filter
 
 rsync -av --delete ${JENKINS_HOME}/plugin-ref/plugins/ ${JENKINS_HOME}/plugins/
 for xml in $(ls $GIT_DIR/*.xml) ; do cp -f $xml $JENKINS_HOME/ ; done
