@@ -15,13 +15,13 @@ if [ ! -d $GIT_DIR ] ; then
 fi
 
 find $GIT_DIR -name '*.xml' -type f | xargs grep ' plugin=' | sed 's|.* plugin="||;s|@.*||' | sort -u | grep -v '^pipeline-' > $GIT_DIR/plugin.used
-rm -rf $GIT_DIR/plugins.filterred
-touch $GIT_DIR/plugins.filterred
+rm -rf $GIT_DIR/plugins.filter
+touch $GIT_DIR/plugins.filter
 for p in $(cat $GIT_DIR/plugin.used) ; do
-  grep "^$p:" $GIT_DIR/pluginslist >> $GIT_DIR/plugins.filterred || true
+  grep "^$p:" $GIT_DIR/pluginslist >> $GIT_DIR/plugins.filter || true
 done
-rm -rf ${JENKINS_HOME}/plugins/${p}.lock
-${script_dir}/install-plugins.sh $GIT_DIR/plugins.filterred
+rm -rf ${JENKINS_HOME}/plugin-ref/plugins/${p}.lock
+${script_dir}/install-plugins.sh $GIT_DIR/plugins.filter
 
 rsync -av --delete ${JENKINS_HOME}/plugin-ref/plugins/ ${JENKINS_HOME}/plugins/
 for xml in $(ls $GIT_DIR/*.xml) ; do cp -f $xml $JENKINS_HOME/ ; done
