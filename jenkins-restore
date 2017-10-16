@@ -13,11 +13,13 @@ GIT_DIR=${JENKINS_HOME}/plugin-ref/cmsjenkins-${branch}
 if [ ! -d $GIT_DIR ] ; then
   git clone --depth 1 -b $GIT_BRANCH $REPO $GIT_DIR
 fi
-for p in $(cat $GIT_DIR/pluginslist | sed 's|:.*||') ; do
-  rm -rf ${JENKINS_HOME}/plugin-ref/plugins/${p}.lock || true
+
+find $GIT_DIR -name '*.xml' -type f | xargs grep ' plugin=' | sed 's|.* plugin="||;s|@.*||' | sort -u | grep -v '^pipeline-' > $GIT_DIR/plugin.used
+touch $GIT_DIR/plugins.filterred
+for p in $(cat $GIT_DIR/plugin.used) ; do
+  grep "^$p:" $GIT_DIR/pluginslist >> $GIT_DIR/plugins.filterred
 done
-grep -v '^pipeline\-' $GIT_DIR/pluginslist > $GIT_DIR/pluginslist.filter 
-${script_dir}/install-plugins.sh $GIT_DIR/pluginslist.filter
+${script_dir}/install-plugins.sh $GIT_DIR/plugins.filterred
 
 rsync -av --delete ${JENKINS_HOME}/plugin-ref/plugins/ ${JENKINS_HOME}/plugins/
 for xml in $(ls $GIT_DIR/*.xml) ; do cp -f $xml $JENKINS_HOME/ ; done
