@@ -152,6 +152,7 @@ main() {
     local plugins=()
 
     mkdir -p "$REF_DIR" || exit 1
+    rm -f $FAILED || true
 
     if [[ ($# -eq 0) ]]; then
       while read -r line; do plugins="$plugins $line" ; done
@@ -207,6 +208,10 @@ main() {
 
     if [[ -f $FAILED ]]; then
         echo "Some plugins failed to download!" "$(<"$FAILED")" >&2
+        for p in $(cat $FAILED | sed 's|i.*:  *||') ; do
+          rm -f $REF_DIR/$p.jpi
+        done
+        rm -f $FAILED
         exit 1
     fi
 
