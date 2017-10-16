@@ -30,6 +30,6 @@ done
 mkdir -p  ${JENKINS_HOME}/secrets
 pkey=${JENKINS_HOME}/slave_setup/cmsbot/.ssh/id_rsa-openstack
 if [ ! -f $pkey ] ; then pkey=${JENKINS_HOME}/.ssh/id_rsa-openstack ; fi
-for key in secret.key secret.key.not-so-secret secrets/master.key ; do 
+for key in secret.key secret.key.not-so-secret secrets/master.key identity.key.enc ; do 
   openssl enc -d -aes-256-cbc -in $GIT_DIR/${key}.enc -out $JENKINS_HOME/$key -pass file:$pkey
 done

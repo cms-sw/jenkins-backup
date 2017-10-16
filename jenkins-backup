@@ -35,7 +35,7 @@ for xml in $(ls $JENKINS_HOME/*.xml) ; do cp -f $xml $GIT_DIR/ ; done
 
 pkey=${JENKINS_HOME}/slave_setup/cmsbot/.ssh/id_rsa-openstack
 if [ ! -f $pkey ] ; then pkey=${JENKINS_HOME}/.ssh/id_rsa-openstack ; fi
-for s in secret.key secret.key.not-so-secret secrets/master.key ; do
+for s in secret.key secret.key.not-so-secret secrets/master.key identity.key.enc ; do
   key=$JENKINS_HOME/$s
   bkey=${key}.backup
   ekey=$GIT_DIR/${s}.enc
