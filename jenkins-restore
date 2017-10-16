@@ -15,6 +15,7 @@ if [ ! -d $GIT_DIR ] ; then
 fi
 
 find $GIT_DIR -name '*.xml' -type f | xargs grep ' plugin=' | sed 's|.* plugin="||;s|@.*||' | sort -u | grep -v '^pipeline-' > $GIT_DIR/plugin.used
+rm -rf $GIT_DIR/plugins.filterred
 touch $GIT_DIR/plugins.filterred
 for p in $(cat $GIT_DIR/plugin.used) ; do
   grep "^$p:" $GIT_DIR/pluginslist >> $GIT_DIR/plugins.filterred || true
