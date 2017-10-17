@@ -16,12 +16,16 @@ let PARALLEL_JOBS=$(getconf _NPROCESSORS_ONLN)*2
 
 . $(dirname $0)/jenkins-support
 
+getLockFile() {
+  printf '%s' "$REF_DIR/lock/${1}"
+}
+
 getArchiveFilename() {
     printf '%s' "$REF_DIR/${1}.jpi"
 }
 
 download() {
-    local plugin version jpi
+    local plugin version jpi url
     plugin="$1"
     version="${2:-latest}"
     jpi="$(getArchiveFilename "$plugin")"
@@ -72,7 +76,7 @@ doDownload() {
     plugin="$1"
     version="$2"
     if [ "$version" != "latest" ] ; then
-      if hasNewerVersion "$plugin" "$version" ;then return 0; fi
+      if hasNewerVersion "$plugin" "$version" ;then echo "Installed: $plugin $version"; return 0; fi
     fi
     jpi="$(getArchiveFilename "$plugin")"
     rm -f "$jpi"
@@ -106,7 +110,7 @@ checkIntegrity() {
 }
 
 resolveDependencies() {
-    local plugin jpi dependencies cv
+    local plugin jpi dependencies cv lock
     plugin="$1"
     jpi="$(getArchiveFilename "$plugin")"
 
@@ -117,13 +121,14 @@ resolveDependencies() {
     IFS=',' read -r -a array <<< "$dependencies"
 
     for d in "${array[@]}" ; do
-      plugin="$(cut -d':' -f1 - <<< "$d")"
-      cv="$(cut -d':' -f2 - <<< "$d")"
       if [[ $d == *"resolution:=optional"* ]]; then
         continue
-      elif ! hasNewerVersion "$plugin" "$cv" ; then
-        if [ ! -f "${jpi}.latest" ] ; then
-          echo "$plugin:latest" >> $DEPS
+      else
+         plugin="$(cut -d':' -f1 - <<< "$d")"
+         cv="$(cut -d':' -f2 - <<< "$d")"
+         lock="$(getLockFile "$plugin")"
+         if [ ! -d "$lock" ] ; then
+          echo "$plugin:$cv" >> $DEPS
         fi
       fi
     done
@@ -179,6 +184,10 @@ main() {
         JENKINS_UC_LATEST=
     fi
 
+    for plugin in $plugins; do
+      mkdir "$(getLockFile "${plugin%%:*}")"
+    done
+
     echo "Downloading plugins..."
     for plugin in $plugins; do
         while [ $(jobs -p | wc -l) -ge ${PARALLEL_JOBS} ] ; do sleep 1; done
@@ -197,21 +206,26 @@ main() {
     if [[ -f $FAILED ]]; then
         echo "Some plugins failed to download!" "$(<"$FAILED")" >&2
         rm -f $FAILED
+        rm -rf "$REF_DIR/*.lock"
         exit 1
     fi
 }
-rm -rf "$REF_DIR/*.latest"
+
+rm -rf "$REF_DIR/lock"
+mkdir -p "$REF_DIR/lock"
 main "$@"
 while [ -s $DEPS ] ; do
   rm -f ${DEPS}.uniq
   touch ${DEPS}.uniq
   for p in $(cat $DEPS | sed -e 's|:.*$||' | sort -u) ; do
-    grep "^$p:" $DEPS | tail -1 >> ${DEPS}.uniq
+    max_ver=$(grep "^$p:" $DEPS | sed -e 's|.*:||' | sort -V | tail -1)
+    echo "REQ: $p $max_ver $(grep "^$p:" $DEPS | sed -e 's|.*:||' | sort -V)"
+    grep "^$p:$max_ver$" $DEPS | tail -1 >>  ${DEPS}.uniq
   done
   echo "============== deps ========="
   cat ${DEPS}.uniq
   echo "----------------------------"
   main "${DEPS}.uniq"
 done
-rm -rf "$REF_DIR/*.latest"
+rm -rf "$REF_DIR/lock"
 
