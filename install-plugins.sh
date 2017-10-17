@@ -12,6 +12,7 @@ FAILED="$REF_DIR/failed-plugins.txt"
 DEPS="$REF_DIR/deps-plugins.txt"
 JENKINS_UC="https://updates.jenkins.io"
 CMSCOPY="http://muzaffar.web.cern.ch/muzaffar/jenkins-plugins/"
+PLUGIN_LIST=""
 let PARALLEL_JOBS=$(getconf _NPROCESSORS_ONLN)*2
 
 . $(dirname $0)/jenkins-support
@@ -201,13 +202,16 @@ main() {
 
 rm -rf "$REF_DIR/lock"
 mkdir -p "$REF_DIR/lock"
-main "$@"
+PLUGIN_LIST=$1
+main "$2"
 while [ -s $DEPS ] ; do
   rm -f ${DEPS}.uniq
   touch ${DEPS}.uniq
   for p in $(cat $DEPS | sed -e 's|:.*$||' | sort -u) ; do
-    max_ver=$(grep "^$p:" $DEPS | sed -e 's|.*:||' | sort -V | tail -1)
-    echo "REQ: $p $max_ver $(grep "^$p:" $DEPS | sed -e 's|.*:||' | sort -V)"
+    list_ver=$(grep "^$p:" $PLUGIN_LIST | sed -e 's|.*:||' | sort -V | tail -1)
+    max_ver1=$(grep "^$p:" $DEPS | sed -e 's|.*:||' | sort -V | tail -1)
+    max_ver=$(echo -e "$list_ver\n$max_ver1 | sort -V | tail -1)
+    echo "REQ: $p $max_ver $max_ver1 $list_ver $(grep "^$p:" $DEPS | sed -e 's|.*:||' | sort -V | tr '\n' ' ')"
     grep "^$p:$max_ver$" $DEPS | tail -1 >>  ${DEPS}.uniq
   done
   echo "============== deps ========="
