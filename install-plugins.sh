@@ -158,19 +158,7 @@ main() {
     rm -f $FAILED
     rm -f $DEPS
     touch $DEPS
-    if [[ ($# -eq 0) ]]; then
-      while read -r line; do plugins="$plugins $line" ; done
-    elif [ -f $1 ] ; then
-      plugins=$(cat $1 | tr '\n' ' ')  
-    else
-      plugins="$@"
-    fi
-
-    if [ -f $1 ] ; then
-      plugins=$(cat $1)
-    else
-      plugins="$@"
-    fi
+    plugins=$(cat $1)
 
     echo "Analyzing war..."
     bundledPlugins="$(bundledPlugins)"
