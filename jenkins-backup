@@ -33,7 +33,7 @@ rsync -av --delete --delete-excluded --exclude="*builds*" --exclude="*/disk-usag
 
 for xml in $(ls $JENKINS_HOME/*.xml) ; do cp -f $xml $GIT_DIR/ ; done
 for s in identity.key.enc secrets/org.jenkinsci.main.modules.instance_identity.InstanceIdentity.KEY ; do
-  cp -f $JENKINS_HOME/$s $GIT_DIR/$s
+  rm -f  $GIT_DIR/$s || true
 done
 
 pkey=${JENKINS_HOME}/slave_setup/cmsbot/.ssh/id_rsa-openstack

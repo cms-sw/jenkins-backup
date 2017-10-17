@@ -25,7 +25,7 @@ ${script_dir}/install-plugins.sh $GIT_DIR/pluginslist $GIT_DIR/plugins.filter
 
 rsync -av --delete ${JENKINS_HOME}/plugin-ref/plugins/ ${JENKINS_HOME}/plugins/
 for xml in $(ls $GIT_DIR/*.xml) ; do cp -f $xml $JENKINS_HOME/ ; done
-cp -f $GIT_DIR/identity.key.enc $JENKINS_HOME/identity.key.enc
+#cp -f $GIT_DIR/identity.key.enc $JENKINS_HOME/identity.key.enc
 for dir in labels users nodes log scriptler jobs ; do
   mkdir -p ${JENKINS_HOME}/${dir}
   rsync -av $GIT_DIR/${dir}/ ${JENKINS_HOME}/${dir}/
