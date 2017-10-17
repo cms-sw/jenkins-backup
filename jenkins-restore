@@ -14,10 +14,11 @@ if [ ! -d $GIT_DIR ] ; then
   git clone --depth 1 -b $GIT_BRANCH $REPO $GIT_DIR
 fi
 
-find $GIT_DIR -name '*.xml' -type f | xargs grep ' plugin=' | sed 's|.* plugin="||;s|@.*||' | sort -u | grep -v '^pipeline-' > $GIT_DIR/plugin.used
+find $GIT_DIR -name '*.xml' -type f | xargs grep ' plugin=' | sed 's|.* plugin="||;s|@.*||' | grep -v '^pipeline-' > $GIT_DIR/plugin.used
+echo 'matrix-auth' $GIT_DIR/pluginslist >> $GIT_DIR/plugin.used
 rm -rf $GIT_DIR/plugins.filter
 touch $GIT_DIR/plugins.filter
-for p in $(cat $GIT_DIR/plugin.used) ; do
+for p in $(cat $GIT_DIR/plugin.used | sort -u) ; do
   grep "^$p:" $GIT_DIR/pluginslist >> $GIT_DIR/plugins.filter || true
 done
 rm -rf ${JENKINS_HOME}/plugin-ref/plugins/*.lock
@@ -31,9 +32,7 @@ for dir in labels users nodes log scriptler jobs ; do
   rsync -av $GIT_DIR/${dir}/ ${JENKINS_HOME}/${dir}/
 done
 
-for conf in $(${JENKINS_HOME}/jobs -mindepth 2 -maxdepth 2 -name 'config.xml' -type f) ; do
-  sed -i -e 's|<disabled>false|<disabled>true|' $conf
-done
+find ${JENKINS_HOME}/jobs -mindepth 2 -maxdepth 2 -name 'config.xml' -type f |  xargs -i sed -i -e 's|<disabled>true|<disabled>false|' '{}'
 
 mkdir -p  ${JENKINS_HOME}/secrets
 pkey=${JENKINS_HOME}/slave_setup/cmsbot/.ssh/id_rsa-openstack
