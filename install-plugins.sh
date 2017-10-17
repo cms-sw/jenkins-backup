@@ -210,13 +210,9 @@ while [ -s $DEPS ] ; do
   for p in $(cat $DEPS | sed -e 's|:.*$||' | sort -u) ; do
     list_ver=$(grep "^$p:" $PLUGIN_LIST | sed -e 's|.*:||' | sort -V | tail -1)
     max_ver1=$(grep "^$p:" $DEPS | sed -e 's|.*:||' | sort -V | tail -1)
-    max_ver=$(echo -e "$list_ver\n$max_ver1 | sort -V | tail -1)
-    echo "REQ: $p $max_ver $max_ver1 $list_ver $(grep "^$p:" $DEPS | sed -e 's|.*:||' | sort -V | tr '\n' ' ')"
-    grep "^$p:$max_ver$" $DEPS | tail -1 >>  ${DEPS}.uniq
+    max_ver=$(echo -e "$list_ver\n$max_ver1" | sort -V | tail -1)
+    echo "$p:$max_ver" >>  ${DEPS}.uniq
   done
-  echo "============== deps ========="
-  cat ${DEPS}.uniq
-  echo "----------------------------"
   main "${DEPS}.uniq"
 done
 rm -rf "$REF_DIR/lock"
