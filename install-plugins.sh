@@ -10,65 +10,72 @@ set -o pipefail
 REF_DIR=${REF:-/build/plugin-ref/plugins}
 FAILED="$REF_DIR/failed-plugins.txt"
 DEPS="$REF_DIR/deps-plugins.txt"
-JENKINS_UC=https://updates.jenkins.io
+JENKINS_UC="https://updates.jenkins.io"
+CMSCOPY="http://muzaffar.web.cern.ch/muzaffar/jenkins-plugins/"
 let PARALLEL_JOBS=$(getconf _NPROCESSORS_ONLN)*2
 
 . $(dirname $0)/jenkins-support
-
-getLockFile() {
-    printf '%s' "$REF_DIR/${1}.lock"
-}
 
 getArchiveFilename() {
     printf '%s' "$REF_DIR/${1}.jpi"
 }
 
 download() {
-    local plugin originalPlugin version lock ignoreLockFile
+    local plugin version jpi
     plugin="$1"
     version="${2:-latest}"
-    ignoreLockFile="${3:-}"
-    lock="$(getLockFile "$plugin")"
-
-    if [[ $ignoreLockFile ]] || mkdir "$lock" &>/dev/null; then
-        if ! doDownload "$plugin" "$version"; then
-            # some plugin don't follow the rules about artifact ID
-            # typically: docker-plugin
-            originalPlugin="$plugin"
-            plugin="${plugin}-plugin"
-            if ! doDownload "$plugin" "$version"; then
-                echo "Failed to download plugin: $originalPlugin or $plugin" >&2
-                echo "Not downloaded: ${originalPlugin}" >> "$FAILED"
-                return 1
-            fi
+    jpi="$(getArchiveFilename "$plugin")"
+    if ! doDownload "$plugin" "$version"; then
+      if ! doDownload "$plugin-plugin" "$version"; then
+        url="${CMSCOPY}/${plugin}.jpi"
+        if ! downloadURL "$plugin" "$jpi" "$url" ; then
+          echo "Failed to download plugin: $plugin or ${plugin}-plugin" >&2
+          echo "Not downloaded: ${plugin}" >> "$FAILED"
+          rm -f "$jpi"
+          return 1
         fi
-
-        if ! checkIntegrity "$plugin"; then
-            echo "Downloaded file is not a valid ZIP: $(getArchiveFilename "$plugin")" >&2
-            echo "Download integrity: ${plugin}" >> "$FAILED"
-            return 1
-        fi
-
-        resolveDependencies "$plugin"
+      fi
     fi
+
+    if ! checkIntegrity "$plugin"; then
+      echo "Downloaded file is not a valid ZIP: $(getArchiveFilename "$plugin")" >&2
+      echo "Download integrity: ${plugin}" >> "$FAILED"
+      rm -f "$jpi"
+      return 1
+    fi
+    if [ "$version" = "latest" ] ; then touch "$jpi.latest" ; fi
+    resolveDependencies "$plugin"
+}
+
+getPluginVersion() {
+  local jpi
+  jpi="$(getArchiveFilename "$1")"
+  if test -f "$jpi" ; then
+     echo $(unzip -p "$jpi" META-INF/MANIFEST.MF | tr -d '\r' | grep "^Plugin-Version:" | sed 's|^Plugin-Version: *||')
+  else
+    echo ""
+  fi
+}
+
+hasNewerVersion() {
+  local xv cv
+  xv=$(echo $2 | sed -e s'|-.*$||')
+  cv="$(getPluginVersion "$1")"
+  if [ "$(echo -e "$xv\n$cv" | sort -V | tail -1)" = "$cv" ] ; then
+    return 0
+  fi
+  return 1
 }
 
 doDownload() {
     local plugin version url jpi cversion
     plugin="$1"
     version="$2"
-    jpi="$(getArchiveFilename "$plugin")"
-
     if [ "$version" != "latest" ] ; then
-      if test -f "$jpi" ; then
-        cversion=$(unzip -p "$jpi" META-INF/MANIFEST.MF | tr -d '\r' | grep "^Plugin-Version:" | sed 's|^Plugin-Version: *||')
-        if [ "$(echo -e "$version\n$cversion" | sort | tail -1)" = "$cversion" ] ; then
-          echo "Using existing newer version: $plugin $version (existing: $cversion)"
-          return 0
-        fi
-      fi
+      if hasNewerVersion "$plugin" "$version" ;then return 0; fi
     fi
-
+    jpi="$(getArchiveFilename "$plugin")"
+    rm -f "$jpi"
     if [[ "$version" == "latest" && -n "$JENKINS_UC_LATEST" ]]; then
         # If version-specific Update Center is available, which is the case for LTS versions,
         # use it to resolve latest versions.
@@ -80,42 +87,45 @@ doDownload() {
         JENKINS_UC_DOWNLOAD=${JENKINS_UC_DOWNLOAD:-"$JENKINS_UC/download"}
         url="$JENKINS_UC_DOWNLOAD/plugins/$plugin/$version/${plugin}.hpi"
     fi
+    if ! downloadURL "$plugin" "$jpi" "$url" ; then return 1 ; fi
+    return 0
+}
 
-    echo "Downloading plugin: $plugin from $url"
-    curl --connect-timeout "${CURL_CONNECTION_TIMEOUT:-20}" --retry "${CURL_RETRY:-5}" --retry-delay "${CURL_RETRY_DELAY:-0}" --retry-max-time "${CURL_RETRY_MAX_TIME:-60}" -s -f -L "$url" -o "$jpi"
-    return $?
+
+downloadURL() {
+  echo "Downloading plugin: $1 from $3"
+  curl --connect-timeout "${CURL_CONNECTION_TIMEOUT:-20}" --retry "${CURL_RETRY:-5}" --retry-delay "${CURL_RETRY_DELAY:-0}" --retry-max-time "${CURL_RETRY_MAX_TIME:-60}" -s -f -L "$3" -o "$2"
+  return $?
 }
 
 checkIntegrity() {
-    local plugin jpi
-    plugin="$1"
-    jpi="$(getArchiveFilename "$plugin")"
-
+    local jpi
+    jpi="$(getArchiveFilename "$1")"
     unzip -t -qq "$jpi" >/dev/null
     return $?
 }
 
 resolveDependencies() {
-    local plugin jpi dependencies
+    local plugin jpi dependencies cv
     plugin="$1"
     jpi="$(getArchiveFilename "$plugin")"
 
     dependencies="$(unzip -p "$jpi" META-INF/MANIFEST.MF | tr -d '\r' | tr '\n' '|' | sed -e 's#| ##g' | tr '|' '\n' | grep "^Plugin-Dependencies: " | sed -e 's#^Plugin-Dependencies: ##')"
 
-    if [[ ! $dependencies ]]; then
-        return
-    fi
+    if [[ ! $dependencies ]]; then return ; fi
 
     IFS=',' read -r -a array <<< "$dependencies"
 
-    for d in "${array[@]}"
-    do
-        plugin="$(cut -d':' -f1 - <<< "$d")"
-        if [[ $d == *"resolution:=optional"* ]]; then
-            continue
-        elif [ ! -d $REF_DIR/${plugin}.lock ] ; then 
-            echo "$d" >> $DEPS
+    for d in "${array[@]}" ; do
+      plugin="$(cut -d':' -f1 - <<< "$d")"
+      cv="$(cut -d':' -f2 - <<< "$d")"
+      if [[ $d == *"resolution:=optional"* ]]; then
+        continue
+      elif ! hasNewerVersion "$plugin" "$cv" ; then
+        if [ ! -f "${jpi}.latest" ] ; then
+          echo "$plugin:latest" >> $DEPS
         fi
+      fi
     done
 }
 
@@ -157,12 +167,6 @@ main() {
       plugins="$@"
     fi
 
-    # Create lockfile manually before first run to make sure any explicit version set is used.
-    echo "Creating initial locks..."
-    for plugin in $plugins; do
-        mkdir "$(getLockFile "${plugin%%:*}")"
-    done
-
     echo "Analyzing war..."
     bundledPlugins="$(bundledPlugins)"
 
@@ -177,14 +181,13 @@ main() {
 
     echo "Downloading plugins..."
     for plugin in $plugins; do
-        while [ $(jobs -p | wc -l) -ge ${PARALLEL_JOBS} ] ; do sleep 1 ; done
+        while [ $(jobs -p | wc -l) -ge ${PARALLEL_JOBS} ] ; do sleep 1; done
         pluginVersion=""
-
         if [[ $plugin =~ .*:.* ]]; then
             pluginVersion=$(versionFromPlugin "${plugin}")
             plugin="${plugin%%:*}"
         fi
-        download "$plugin" "$pluginVersion" "true" &
+        download "$plugin" "$pluginVersion" &
     done
     wait
 
@@ -193,14 +196,11 @@ main() {
     echo "${bundledPlugins}"
     if [[ -f $FAILED ]]; then
         echo "Some plugins failed to download!" "$(<"$FAILED")" >&2
-        for p in $(cat $FAILED | sed 's|i.*:  *||') ; do
-          rm -f $REF_DIR/$p.jpi
-        done
         rm -f $FAILED
         exit 1
     fi
 }
-
+rm -rf "$REF_DIR/*.latest"
 main "$@"
 while [ -s $DEPS ] ; do
   rm -f ${DEPS}.uniq
@@ -213,6 +213,5 @@ while [ -s $DEPS ] ; do
   echo "----------------------------"
   main "${DEPS}.uniq"
 done
+rm -rf "$REF_DIR/*.latest"
 
-echo "Cleaning up locks"
-rm -fr "$REF_DIR"/*.lock || true
