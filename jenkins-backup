@@ -32,7 +32,9 @@ mkdir -p $GIT_DIR/jobs $GIT_DIR/secrets
 rsync -av --delete --delete-excluded --exclude="*builds*" --exclude="*/disk-usage.xml" $JENKINS_HOME/jobs/ $GIT_DIR/jobs/
 
 for xml in $(ls $JENKINS_HOME/*.xml) ; do cp -f $xml $GIT_DIR/ ; done
-cp -f $JENKINS_HOME/identity.key.enc $GIT_DIR/identity.key.enc
+for s in identity.key.enc secrets/org.jenkinsci.main.modules.instance_identity.InstanceIdentity.KEY ; do
+  cp -f $JENKINS_HOME/$s $GIT_DIR/$s
+done
 
 pkey=${JENKINS_HOME}/slave_setup/cmsbot/.ssh/id_rsa-openstack
 if [ ! -f $pkey ] ; then pkey=${JENKINS_HOME}/.ssh/id_rsa-openstack ; fi
