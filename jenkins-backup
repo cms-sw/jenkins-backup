@@ -50,7 +50,7 @@ for s in secret.key secret.key.not-so-secret secrets/hudson.console.ConsoleNote.
     fi
   fi
   echo "$chksum" >  $bkey
-  openssl enc -aes-256-cbc -salt -in $key -out ${ekey} -pass file:$pkey
+  openssl enc -e -a -aes-256-cbc -salt -in $key -out ${ekey} -pass file:$pkey
 done
 
 java -jar  $JENKINS_HOME/jenkins-cli.jar -i /home/jenkins/.ssh/id_dsa -s http://localhost:8080/jenkins -remoting groovy $scritp_dir/get_plugins.groovy | sort > $GIT_DIR/pluginslist
