@@ -39,7 +39,8 @@ done
 
 pkey=${JENKINS_HOME}/slave_setup/cmsbot/.ssh/id_rsa-openstack
 if [ ! -f $pkey ] ; then pkey=${JENKINS_HOME}/.ssh/id_rsa-openstack ; fi
-for s in secret.key secret.key.not-so-secret secrets/hudson.console.ConsoleNote.MAC secrets/jenkins.model.Jenkins.crumbSalt secrets/org.jenkinsci.main.modules.instance_identity.InstanceIdentity.KEY secrets/hudson.model.Job.serverCookie secrets/jenkins.security.ApiTokenProperty.seed secrets/hudson.util.Secret secrets/master.key ; do
+. ${scritp_dir}/jenkins-support
+for s in ${JENKINS_SECRETS_FILES} ; do
   key=$JENKINS_HOME/$s
   bkey=${GIT_DIR}/${s}.chksum
   ekey=$GIT_DIR/${s}.enc
