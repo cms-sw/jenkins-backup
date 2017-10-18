@@ -1,4 +1,5 @@
 #!/bin/bash -ex
+JENKINS_HOME=/var/lib/jenkins
 scritp_dir=$(dirname $0)
 branch=$(java -jar ${JENKINS_HOME}/jenkins-cli.jar -i /home/jenkins/.ssh/id_dsa -s http://localhost:8080/jenkins version | cut -d. -f1,2 | sed 's|.$||;s|\.$|\.0|')
 GIT_BRANCH=jenkins${branch}
@@ -38,17 +39,18 @@ done
 
 pkey=${JENKINS_HOME}/slave_setup/cmsbot/.ssh/id_rsa-openstack
 if [ ! -f $pkey ] ; then pkey=${JENKINS_HOME}/.ssh/id_rsa-openstack ; fi
-for s in secret.key secret.key.not-so-secret secrets/master.key ; do
+for s in secret.key secret.key.not-so-secret secrets/hudson.console.ConsoleNote.MAC secrets/jenkins.model.Jenkins.crumbSalt secrets/org.jenkinsci.main.modules.instance_identity.InstanceIdentity.KEY secrets/hudson.model.Job.serverCookie secrets/jenkins.security.ApiTokenProperty.seed hudson.util.Secret secrets/master.key ; do
   key=$JENKINS_HOME/$s
-  bkey=${key}.backup
+  bkey=${GIT_DIR}/${s}.chksum
   ekey=$GIT_DIR/${s}.enc
+  chksum=$(sha256sum -b $key | sed 's| .*||')
   if [ -f $bkey -a -f $ekey ] ; then
-    if [ $(diff $bkey $key | wc -l) -eq 0 ] ; then
+    if [ "$chksum" = "$(cat $bkey)" ] ; then
       continue
     fi
   fi
-  cp $key $bkey
-  openssl enc -aes-256-cbc -salt -in $key -out  ${ekey} -pass file:$pkey
+  echo "$chksum" >  $bkey
+  openssl enc -aes-256-cbc -salt -in $key -out ${ekey} -pass file:$pkey
 done
 
 java -jar  $JENKINS_HOME/jenkins-cli.jar -i /home/jenkins/.ssh/id_dsa -s http://localhost:8080/jenkins -remoting groovy $scritp_dir/get_plugins.groovy | sort > $GIT_DIR/pluginslist

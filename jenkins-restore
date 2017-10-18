@@ -37,6 +37,7 @@ find ${JENKINS_HOME}/jobs -mindepth 2 -maxdepth 2 -name 'config.xml' -type f |  
 mkdir -p  ${JENKINS_HOME}/secrets
 pkey=${JENKINS_HOME}/slave_setup/cmsbot/.ssh/id_rsa-openstack
 if [ ! -f $pkey ] ; then pkey=${JENKINS_HOME}/.ssh/id_rsa-openstack ; fi
-for key in secret.key secret.key.not-so-secret secrets/master.key ; do
+for s in secret.key secret.key.not-so-secret $(ls secrets/*.enc | sed 's|.enc$||')  ; do
+  if [ ! -f $GIT_DIR/${key}.enc ] ; then continue ; fi
   openssl enc -d -aes-256-cbc -in $GIT_DIR/${key}.enc -out $JENKINS_HOME/$key -pass file:$pkey
 done
