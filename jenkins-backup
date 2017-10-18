@@ -1,6 +1,6 @@
 #!/bin/bash -ex
 JENKINS_HOME=/var/lib/jenkins
-scritp_dir=$(dirname $0)
+script_dir=$(dirname $0)
 branch=$(java -jar ${JENKINS_HOME}/jenkins-cli.jar -i /home/jenkins/.ssh/id_dsa -s http://localhost:8080/jenkins version | cut -d. -f1,2 | sed 's|.$||;s|\.$|\.0|')
 GIT_BRANCH=jenkins${branch}
 GIT_DIR=${JENKINS_HOME}/gitlab/cmsjenkins-${branch}
@@ -39,7 +39,7 @@ done
 
 pkey=${JENKINS_HOME}/slave_setup/cmsbot/.ssh/id_rsa-openstack
 if [ ! -f $pkey ] ; then pkey=${JENKINS_HOME}/.ssh/id_rsa-openstack ; fi
-. ${scritp_dir}/jenkins-secrets
+. ${script_dir}/jenkins-secrets
 for s in ${JENKINS_SECRETS_FILES} ; do
   key=$JENKINS_HOME/$s
   bkey=${GIT_DIR}/${s}.chksum
@@ -54,7 +54,7 @@ for s in ${JENKINS_SECRETS_FILES} ; do
   openssl enc -e -a -aes-256-cbc -salt -in $key -out ${ekey} -pass file:$pkey
 done
 
-java -jar  $JENKINS_HOME/jenkins-cli.jar -i /home/jenkins/.ssh/id_dsa -s http://localhost:8080/jenkins -remoting groovy $scritp_dir/get_plugins.groovy | sort > $GIT_DIR/pluginslist
+java -jar  $JENKINS_HOME/jenkins-cli.jar -i /home/jenkins/.ssh/id_dsa -s http://localhost:8080/jenkins -remoting groovy $script_dir/get_plugins.groovy | sort > $GIT_DIR/pluginslist
 
 if [ $(grep ':' $GIT_DIR/pluginslist | wc -l) -eq 0 ] ; then
   echo "ERROR: unable to get plugins"
