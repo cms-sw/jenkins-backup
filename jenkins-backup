@@ -39,7 +39,7 @@ done
 
 pkey=${JENKINS_HOME}/slave_setup/cmsbot/.ssh/id_rsa-openstack
 if [ ! -f $pkey ] ; then pkey=${JENKINS_HOME}/.ssh/id_rsa-openstack ; fi
-. ${scritp_dir}/jenkins-support
+. ${scritp_dir}/jenkins-secrets
 for s in ${JENKINS_SECRETS_FILES} ; do
   key=$JENKINS_HOME/$s
   bkey=${GIT_DIR}/${s}.chksum
