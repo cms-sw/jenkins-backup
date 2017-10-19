@@ -1,7 +1,7 @@
 #!/bin/bash -ex
 JENKINS_HOME=/var/lib/jenkins
 script_dir=$(dirname $0)
-LOCALCLI_KEY=${JENKINS_HOME}/.ssh/id_dsa; fi
+LOCALCLI_KEY=${JENKINS_HOME}/.ssh/id_dsa
 branch=$(java -jar ${JENKINS_HOME}/jenkins-cli.jar -i $LOCALCLI_KEY -s http://localhost:8080/jenkins version | cut -d. -f1,2 | sed 's|.$||;s|\.$|\.0|')
 GIT_BRANCH=jenkins${branch}
 GIT_DIR=${JENKINS_HOME}/gitlab/cmsjenkins-${branch}
