@@ -35,10 +35,8 @@ done
 find ${JENKINS_HOME}/jobs -mindepth 2 -maxdepth 2 -name 'config.xml' -type f |  xargs -i sed -i -e 's|<disabled>false|<disabled>true|' '{}'
 
 mkdir -p  ${JENKINS_HOME}/secrets
-pkey=${JENKINS_HOME}/slave_setup/cmsbot/.ssh/id_rsa-openstack
-if [ ! -f $pkey ] ; then pkey=${JENKINS_HOME}/.ssh/id_rsa-openstack ; fi
 . ${script_dir}/jenkins-secrets
 for s in ${JENKINS_SECRETS_FILES}  ; do
   if [ ! -f $GIT_DIR/${s}.enc ] ; then continue ; fi
-  openssl enc -d -a -aes-256-cbc -in $GIT_DIR/${s}.enc -out $JENKINS_HOME/$s -pass file:$pkey
+  openssl enc -d -a -aes-256-cbc -in $GIT_DIR/${s}.enc -out $JENKINS_HOME/$s -pass file:${JENKINS_HOME}/.ssh/id_dsa
 done
