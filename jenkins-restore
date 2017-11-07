@@ -38,5 +38,5 @@ mkdir -p  ${JENKINS_HOME}/secrets
 . ${script_dir}/jenkins-secrets
 for s in ${JENKINS_SECRETS_FILES}  ; do
   if [ ! -f $GIT_DIR/${s}.enc ] ; then continue ; fi
-  openssl enc -d -a -aes-256-cbc -in $GIT_DIR/${s}.enc -out $JENKINS_HOME/$s -pass file:${JENKINS_HOME}/.ssh/id_dsa
+  openssl enc -d -a -base64 -aes-256-cbc -in $GIT_DIR/${s}.enc -out $JENKINS_HOME/$s -pass file:${JENKINS_HOME}/.ssh/id_dsa
 done
