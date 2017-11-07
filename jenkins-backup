@@ -1,4 +1,5 @@
 #!/bin/bash -ex
+FORCE_ENC=$1
 JENKINS_HOME=/var/lib/jenkins
 script_dir=$(dirname $0)
 LOCALCLI_KEY=${JENKINS_HOME}/.ssh/id_dsa
@@ -46,7 +47,7 @@ for s in ${JENKINS_SECRETS_FILES} ; do
   chksum=$(sha256sum -b $key | sed 's| .*||')
   if [ -f $bkey -a -f $ekey ] ; then
     if [ "$chksum" = "$(cat $bkey)" ] ; then
-      continue
+      if [ "$FORCE_ENC" != "true" ] ; then continue ; fi
     fi
   fi
   echo "$chksum" >  $bkey
