@@ -1,13 +1,7 @@
 #!/bin/bash -eu
-
-# Resolve dependencies and download plugins given on the command line
-#
-# FROM jenkins
-# RUN install-plugins.sh docker-slaves github-branch-source
-
 set -o pipefail
 
-REF_DIR=${REF:-/build/plugin-ref/plugins}
+REF_DIR=${JENKINS_PLUGIN_REF:-/var/lib/jenkins/plugin-ref/plugins}
 FAILED="$REF_DIR/failed-plugins.txt"
 DEPS="$REF_DIR/deps-plugins.txt"
 JENKINS_UC="https://updates.jenkins.io"
