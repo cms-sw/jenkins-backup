@@ -30,7 +30,7 @@ for dir in labels users nodes log scriptler jobs ; do
   rsync -av $GIT_DIR/${dir}/ ${JENKINS_HOME}/${dir}/
 done
 
-find ${JENKINS_HOME}/jobs -mindepth 2 -maxdepth 2 -name 'config.xml' -type f |  xargs -i sed -i -e 's|<disabled>false|<disabled>true|' '{}'
+#find ${JENKINS_HOME}/jobs -mindepth 2 -maxdepth 2 -name 'config.xml' -type f |  xargs -i sed -i -e 's|<disabled>false|<disabled>true|' '{}'
 
 mkdir -p  ${JENKINS_HOME}/secrets
 . ${script_dir}/jenkins-secrets
