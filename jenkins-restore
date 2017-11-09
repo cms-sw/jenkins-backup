@@ -9,8 +9,9 @@ if [ "X$branch" = "X" ] ; then
 fi
 GIT_BRANCH=jenkins${branch}
 GIT_DIR=${JENKINS_HOME}/plugin-ref/cmsjenkins-${branch}
-rm -rf $GIT_DIR
-git clone --depth 1 -b $GIT_BRANCH $REPO $GIT_DIR
+if [ ! -d $GIT_DIR ] ; then
+  git clone --depth 1 -b $GIT_BRANCH $REPO $GIT_DIR
+fi
 
 find $GIT_DIR -name '*.xml' -type f | xargs grep ' plugin=' | sed 's|.* plugin="||;s|@.*||' | grep -v '^pipeline-' > $GIT_DIR/plugin.used
 echo 'matrix-auth' >> $GIT_DIR/plugin.used
