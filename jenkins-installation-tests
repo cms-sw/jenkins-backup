@@ -1,0 +1,6 @@
+#!/bin/bash -ex
+JENKINS_HOME=$1
+JENKINS_CLI="sudo -u jenkins java -jar ${JENKINS_HOME}/jenkins-cli.jar -i ${JENKINS_HOME}/.ssh/id_dsa -s http://localhost:8080/jenkins -remoting"
+$JENKINS_CLI jenkins-disable-nodes -p NODES_FILTER=".*"
+$JENKINS_CLI enable-job jenkins-initialize
+$JENKINS_CLI build 'jenkins-initialize'
