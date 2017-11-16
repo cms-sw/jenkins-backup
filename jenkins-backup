@@ -1,5 +1,6 @@
 #!/bin/bash -ex
 FORCE_ENC=$1
+PUSH_CHG=$2
 JENKINS_HOME=/var/lib/jenkins
 script_dir=$(dirname $0)
 LOCALCLI_KEY=${JENKINS_HOME}/.ssh/id_dsa
@@ -59,12 +60,14 @@ java -jar  $JENKINS_HOME/jenkins-cli.jar -i $LOCALCLI_KEY -s http://localhost:80
 if [ $(grep ':' $GIT_DIR/pluginslist | wc -l) -eq 0 ] ; then
   echo "ERROR: unable to get plugins"
   exit 1
-fi 
-git add . || true
-git commit -a -m "Updated Jenkins configuration ${GIT_BRANCH}" || true
-if [ $(git diff --name-only HEAD origin/$GIT_BRANCH | grep -v '^jobs/update-cmsjenkins-gitlab/' | wc -l) -gt 0 ] ; then
-  echo ">> Files changed"
-  git diff --name-only HEAD origin/$GIT_BRANCH
-  git push origin $GIT_BRANCH
+fi
+if [ "$PUSH_CHG" != "NO" ] ; then
+  git add . || true
+  git commit -a -m "Updated Jenkins configuration ${GIT_BRANCH}" || true
+  if [ $(git diff --name-only HEAD origin/$GIT_BRANCH | grep -v '^jobs/update-cmsjenkins-gitlab/' | wc -l) -gt 0 ] ; then
+    echo ">> Files changed"
+    git diff --name-only HEAD origin/$GIT_BRANCH
+    git push origin $GIT_BRANCH
+  fi
 fi
 
