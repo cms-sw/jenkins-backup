@@ -17,7 +17,6 @@ if [ $(git branch -a | grep remotes/origin/${GIT_BRANCH} | wc -l) -gt 0 ] ; then
   git clean -fdx
   git checkout -q --force $GIT_BRANCH
   git reset --hard origin/$GIT_BRANCH
-  git pull --rebase
 else
   git checkout --orphan ${GIT_BRANCH}
   rm -rf * || true
