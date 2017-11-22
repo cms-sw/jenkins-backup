@@ -30,6 +30,7 @@ for dir in labels users nodes log ; do
   mkdir -p $GIT_DIR/$dir
   rsync -av --delete --include="*.xml" --delete-excluded  --exclude='*/.git*' $JENKINS_HOME/$dir/ $GIT_DIR/$dir/
 done
+rm -rf $GIT_DIR/scriptler
 
 mkdir -p $GIT_DIR/jobs $GIT_DIR/secrets
 rsync -av --delete --delete-excluded --exclude="*builds*" --exclude="*/disk-usage.xml" $JENKINS_HOME/jobs/ $GIT_DIR/jobs/
