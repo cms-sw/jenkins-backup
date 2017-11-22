@@ -55,7 +55,7 @@ for s in ${JENKINS_SECRETS_FILES} ; do
   openssl enc -e -a -base64 -aes-256-cbc -salt -in $key -out ${ekey} -pass file:$LOCALCLI_KEY
 done
 
-java -jar  $JENKINS_HOME/jenkins-cli.jar -i $LOCALCLI_KEY -s http://localhost:8080/jenkins -remoting groovy $script_dir/get_plugins.groovy | sort > $GIT_DIR/pluginslist
+java -jar  $JENKINS_HOME/jenkins-cli.jar -i $LOCALCLI_KEY -s http://localhost:8080/jenkins -remoting groovy $script_dir/get_plugins.groovy | grep -v 'scriptler' | sort > $GIT_DIR/pluginslist
 
 if [ $(grep ':' $GIT_DIR/pluginslist | wc -l) -eq 0 ] ; then
   echo "ERROR: unable to get plugins"

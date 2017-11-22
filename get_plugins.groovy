@@ -1,8 +1,9 @@
 import jenkins.model.*
 import java.util.logging.Logger
 
-Jenkins.instance.pluginManager.plugins.each{
-  plugin -> 
+for (plugin in Jenkins.instance.pluginManager.plugins)
+{
+  if (plugin.isEnabled())
     println ("${plugin.getShortName()}:${plugin.getVersion()}")
 }
 
