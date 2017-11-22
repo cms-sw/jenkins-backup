@@ -26,7 +26,7 @@ else
   git push origin ${GIT_BRANCH}
 fi
 
-for dir in labels users nodes log scriptler ; do
+for dir in labels users nodes log ; do
   mkdir -p $GIT_DIR/$dir
   rsync -av --delete --include="*.xml" --delete-excluded  --exclude='*/.git*' $JENKINS_HOME/$dir/ $GIT_DIR/$dir/
 done
