@@ -1,7 +1,8 @@
 #!/bin/bash -ex
 JENKINS_HOME=$1
+jenkins_prefix=$(cat ${JENKINS_HOME}/jenkins_prefix)
 sed -i -e 's|<disabled>true|<disabled>false|' ${JENKINS_HOME}/jobs/jenkins-disable-nodes/config.xml
-JENKINS_CLI="java -jar ${JENKINS_HOME}/jenkins-cli.jar -i ${JENKINS_HOME}/.ssh/id_dsa -s http://localhost:8080/jenkins -remoting"
+JENKINS_CLI="java -jar ${JENKINS_HOME}/jenkins-cli.jar -i ${JENKINS_HOME}/.ssh/id_dsa -s http://localhost:8080/${jenkins_prefix} -remoting"
 $JENKINS_CLI reload-job jenkins-disable-nodes
 $JENKINS_CLI build jenkins-disable-nodes -p NODES_FILTER='.*'
 $JENKINS_CLI enable-job jenkins-initialize
