@@ -2,15 +2,24 @@
 JENKINS_HOME=$1
 REPO=$2
 script_dir=$(dirname $0)
-branch=$(java -jar ${JENKINS_HOME}/jenkins-cli.jar -s http://localhost:8080/jenkins version | cut -d. -f1,2 | sed 's|.$||;s|\.$|\.0|')
+jenkins_prefix=$(cat ${JENKINS_HOME}/jenkins_prefix)
+if [ "${jenkins_prefix}" = "" ] ; then
+  echo "ERROR: Empty ${JENKINS_HOME}/jenkins_prefix. Please populate it with jenkins prefix e.g. jenkins and then run"
+  exit 1
+fi
+branch=$(java -jar ${JENKINS_HOME}/jenkins-cli.jar -s http://localhost:8080/${jenkins_prefix} version | cut -d. -f1,2 | sed 's|.$||;s|\.$|\.0|')
 if [ "X$branch" = "X" ] ; then 
   echo "Error: Unable to find jenkins version"
   exit 1
 fi
-GIT_BRANCH=jenkins${branch}
-GIT_DIR=${JENKINS_HOME}/plugin-ref/cmsjenkins-${branch}
+GIT_BRANCH=${jenkins_prefix}${branch}
+GIT_DIR=${JENKINS_HOME}/plugin-ref/cmsjenkins-${GIT_BRANCH}
 if [ ! -d $GIT_DIR ] ; then
-  git clone --depth 1 -b $GIT_BRANCH $REPO $GIT_DIR
+  git clone --depth 1 -b $REPO $GIT_DIR
+  pushd $GIT_DIR
+    if [ $(git branch -a | grep "remotes/origin/${GIT_BRANCH}$" | wc -l) = 0 ] ; then GIT_BRANCH=jenkins${branch} ; fi
+    git checkout $GIT_BRANCH
+  popd
 fi
 
 find $GIT_DIR -name '*.xml' -type f | xargs grep ' plugin=' | sed 's|.* plugin="||;s|@.*||' | grep -v '^pipeline-' > $GIT_DIR/plugin.used
