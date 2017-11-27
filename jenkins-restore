@@ -17,7 +17,7 @@ GIT_DIR=${JENKINS_HOME}/plugin-ref/cmsjenkins-${GIT_BRANCH}
 if [ ! -d $GIT_DIR ] ; then
   git clone --depth 1 -b $REPO $GIT_DIR
   pushd $GIT_DIR
-    if [ $(git branch -a | grep "remotes/origin/${GIT_BRANCH}$" | wc -l) = 0 ] ; then GIT_BRANCH=jenkins${branch} ; fi
+    if [ $(git branch -a | grep "remotes/origin/${GIT_BRANCH}$" | wc -l) -eq 0 ] ; then GIT_BRANCH=jenkins${branch} ; fi
     git checkout $GIT_BRANCH
   popd
 fi
