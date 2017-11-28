@@ -48,3 +48,8 @@ for s in ${JENKINS_SECRETS_FILES}  ; do
   openssl enc -d -a -base64 -aes-256-cbc -in $GIT_DIR/${s}.enc -out $JENKINS_HOME/$s -pass file:${JENKINS_HOME}/.ssh/id_dsa
 done
 sed -i -e "s|:8080/jenkins|:8080/${jenkins_prefix}|" $JENKINS_HOME/config.xml
+for xml in hudson.tasks.Mailer.xml jenkins.model.JenkinsLocationConfiguration.xml jenkins.plugins.slack.SlackNotifier.xml ; do
+  if [ -e $JENKINS_HOME/$xml ] ; then
+    sed -i -e "s|cmssdt.cern.ch/jenkins|cmssdt.cern.ch/${jenkins_prefix}|" $JENKINS_HOME/$xml
+  fi
+done
