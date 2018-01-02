@@ -71,7 +71,7 @@ fi
 if [ "$PUSH_CHG" != "NO" ] ; then
   git add . || true
   git commit -a -m "Updated Jenkins configuration ${GIT_BRANCH}" || true
-  if [ "X${FORCE_PUSH}" != "X" ] || [ $(git diff --name-only HEAD origin/$GIT_BRANCH | grep -v '/nextBuildNumber$' | wc -l) -gt 0 ] ; then
+  if [ "X${FORCE_PUSH}" = "Xtrue" ] || [ $(git diff --name-only HEAD origin/$GIT_BRANCH | grep -v '/nextBuildNumber$' | wc -l) -gt 0 ] ; then
     echo ">> Files changed"
     git diff --name-only HEAD origin/$GIT_BRANCH
     git push origin $GIT_BRANCH
