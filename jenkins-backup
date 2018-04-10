@@ -12,10 +12,10 @@ if [ "${jenkins_prefix}" = "" ] ; then
 fi
 branch=$(java -jar ${JENKINS_HOME}/jenkins-cli.jar -i $LOCALCLI_KEY -s http://localhost:8080/${jenkins_prefix} version | cut -d. -f1,2 | sed 's|.$||;s|\.$|\.0|')
 GIT_BRANCH=${jenkins_prefix}${branch}
-GIT_DIR=${JENKINS_HOME}/gitlab/cmsjenkins-${GIT_BRANCH}
+GIT_DIR=${JENKINS_HOME}/jenkins-backup/${GIT_BRANCH}
 
 if [ ! -d $GIT_DIR ] ; then
-  mkdir -p ${JENKINS_HOME}/gitlab
+  mkdir -p ${JENKINS_HOME}/jenkins-backup
   git clone https://:@gitlab.cern.ch:8443/cms-sw/cmsjenkins.git $GIT_DIR
 fi
 cd $GIT_DIR
