@@ -34,8 +34,6 @@ get_plugin_version() {
 }
 
 jenkinsMajorMinorVersion() {
-    local JENKINS_WAR
-    JENKINS_WAR=/usr/lib/jenkins/jenkins.war
     if [[ -f "$JENKINS_WAR" ]]; then
         local version major minor
         version="$(java -jar $JENKINS_WAR --version)"
@@ -49,7 +47,6 @@ jenkinsMajorMinorVersion() {
 }
 
 bundledPlugins() {
-    local JENKINS_WAR=/usr/lib/jenkins/jenkins.war
     if [ -f $JENKINS_WAR ]
     then
         TEMP_PLUGIN_DIR=/tmp/plugintemp.$$

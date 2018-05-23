@@ -7,6 +7,8 @@ DEPS="$REF_DIR/deps-plugins.txt"
 JENKINS_UC="https://updates.jenkins.io"
 CMSCOPY="http://muzaffar.web.cern.ch/muzaffar/jenkins-plugins/"
 PLUGIN_LIST=""
+JENKINS_WAR=$(ps -awx | grep '/jenkins.war' | sed 's|/jenkins.war.*|/jenkins.war|;s|.* ||' | grep '^/' | head -1)
+export JENKINS_WAR
 let PARALLEL_JOBS=$(getconf _NPROCESSORS_ONLN)*2
 
 . $(dirname $0)/jenkins-support
