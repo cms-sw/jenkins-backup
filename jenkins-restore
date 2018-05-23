@@ -53,7 +53,7 @@ mkdir -p  ${JENKINS_HOME}/secrets
 . ${script_dir}/jenkins-secrets
 for s in ${JENKINS_SECRETS_FILES}  ; do
   if [ ! -f $GIT_DIR/${s}.enc ] ; then continue ; fi
-  openssl enc -d -a -base64 -aes-256-cbc -in $GIT_DIR/${s}.enc -out $JENKINS_HOME/$s -pass file:${JENKINS_HOME}/.ssh/id_dsa
+  openssl enc -d -md md5 -a -base64 -aes-256-cbc -in $GIT_DIR/${s}.enc -out $JENKINS_HOME/$s -pass file:${JENKINS_HOME}/.ssh/id_dsa
 done
 MASTER_EXEC=$(getconf _NPROCESSORS_ONLN)
 sed -i -e "s|:8080/jenkins|:8080/${jenkins_prefix}|" $JENKINS_HOME/config.xml
