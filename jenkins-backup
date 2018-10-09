@@ -65,7 +65,7 @@ rm -rf $GIT_DIR/scriptler
 
 mkdir -p $GIT_DIR/jobs $GIT_DIR/secrets
 JOBS_EXCLUDE_FILTER="--exclude='*/disk-usage.xml'"
-for exl in ${JOBS_EXCLUDE_DIRS} builds ws 'ws_[0-9]*' workspace 'workspace_[0-9]*' lastStable lastSuccessful ; do
+for exl in ${JOBS_EXCLUDE_DIRS} .git builds ws 'ws_[0-9]*' workspace 'workspace_[0-9]*' lastStable lastSuccessful ; do
   if [ "X${exl}" = "X" ] ; then continue ; fi
   JOBS_EXCLUDE_FILTER="${JOBS_EXCLUDE_FILTER} --exclude='*/$exl' --exclude='*/$exl/'  --exclude='*/$exl/*'"
 done
