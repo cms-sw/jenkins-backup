@@ -2,6 +2,7 @@
 FORCE_ENC=false
 PUSH_CHG=false
 FORCE_PUSH=false
+FULL_VERSION=false
 BACK_REPO=""
 while [[ $# -gt 0 ]] ; do
   opt=$1; shift
@@ -9,6 +10,7 @@ while [[ $# -gt 0 ]] ; do
     -e|--encrypt)    FORCE_ENC=true;;
     -p|--push)       PUSH_CHG=true;;
     -f|--force)      FORCE_PUSH=true;;
+    -v|--version)    FULL_VERSION=true;;
     -r|--repository) BACK_REPO=$1; shift ;;
   esac
 done
@@ -32,7 +34,8 @@ LOCAL_JENKINS_URL=http://localhost:$(pgrep -x -a  -f ".*httpPort=.*" | tail -1 |
 if [ ! -f $WORKSPACE/jenkins-cli.jar ] ; then
   /usr/bin/wget --no-check-certificate -O ${WORKSPACE}/jenkins-cli.jar "${LOCAL_JENKINS_URL}/${jenkins_prefix}/jnlpJars/jenkins-cli.jar" || true
 fi
-branch=$(java -jar ${WORKSPACE}/jenkins-cli.jar -i $LOCALCLI_KEY -s ${LOCAL_JENKINS_URL}/${jenkins_prefix} version | cut -d. -f1,2 | sed 's|.$||;s|\.$|\.0|')
+branch=$(java -jar ${WORKSPACE}/jenkins-cli.jar -i $LOCALCLI_KEY -s ${LOCAL_JENKINS_URL}/${jenkins_prefix} version)
+if ! $FULL_VERSION ; then branch=$(echo $branch | cut -d. -f1,2 | sed 's|.$||;s|\.$|\.0|') ; fi
 GIT_BRANCH=${jenkins_prefix}${branch}
 GIT_DIR=${WORKSPACE}/${GIT_BRANCH}
 
