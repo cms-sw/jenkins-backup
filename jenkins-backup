@@ -66,6 +66,7 @@ done
 rm -rf $GIT_DIR/scriptler
 
 mkdir -p $GIT_DIR/jobs $GIT_DIR/secrets
+set +x
 JOBS_EXCLUDE_FILTER="--exclude='*/disk-usage.xml'"
 for exl in ${JOBS_EXCLUDE_DIRS} '.git' 'builds' 'ws' 'ws_[0-9]*' 'ws@[0-9]*' 'workspace' 'workspace_[0-9]*' 'lastStable' 'lastSuccessful' ; do
   if [ "X${exl}" = "X" ] ; then continue ; fi
@@ -76,6 +77,7 @@ for inc in ${JOBS_INCLUDE_DIRS} 'config.xml' 'nextBuildNumber' ; do
   if [ "X${inc}" = "X" ] ; then continue ; fi
   JOBS_INCLUDE_FILTER="${JOBS_INCLUDE_FILTER} --include='**/${inc}'"
 done
+set -x
 echo rsync -avm --delete --delete-excluded ${JOBS_INCLUDE_FILTER} $JOBS_EXCLUDE_FILTER $JENKINS_HOME/jobs/ $GIT_DIR/jobs/
 eval rsync -avm --delete --delete-excluded ${JOBS_INCLUDE_FILTER} $JOBS_EXCLUDE_FILTER $JENKINS_HOME/jobs/ $GIT_DIR/jobs/
 
