@@ -1,9 +1,17 @@
 #!/bin/bash -ex
-FORCE_ENC=$1
-PUSH_CHG=$2
-FORCE_PUSH=$3
-BACK_REPO=$4
-if [ "X$BACK_REPO" = "X" ] ; then BACK_REPO=https://:@gitlab.cern.ch:8443/cms-sw/cmsjenkins.git ; fi
+FORCE_ENC=false
+PUSH_CHG=false
+FORCE_PUSH=false
+BACK_REPO="https://:@gitlab.cern.ch:8443/cms-sw/cmsjenkins.git"
+while [[ $# -gt 0 ]] ; do
+  opt=$1; shift
+  case $key in
+    -e|--encrypt)    FORCE_ENC=true;;
+    -p|--push)       PUSH_CHG=true;;
+    -f|--force)      FORCE_PUSH=true;;
+    -r|--repository) BACK_REPO=$1; shift ;;
+  esac
+done
 if [ "X$JENKINS_HOME" = "X" ] ; then JENKINS_HOME=/var/lib/jenkins ; fi
 if [ "X$WORKSPACE" = "X" ] ; then WORKSPACE=$(/bin/pwd) ; fi
 script_dir=$(dirname $0)
@@ -62,7 +70,7 @@ for s in ${JENKINS_SECRETS_FILES} ; do
   chksum=$(sha256sum -b $key | sed 's| .*||')
   if [ -f $bkey -a -f $ekey ] ; then
     if [ "$chksum" = "$(cat $bkey)" ] ; then
-      if [ "$FORCE_ENC" != "true" ] ; then continue ; fi
+      if ! $FORCE_ENC ; then continue ; fi
     fi
   fi
   echo "$chksum" >  $bkey
@@ -75,10 +83,10 @@ if [ $(grep ':' $GIT_DIR/pluginslist | wc -l) -eq 0 ] ; then
   echo "ERROR: unable to get plugins"
   exit 1
 fi
-if [ "$PUSH_CHG" != "NO" ] ; then
+if $PUSH_CHG ; then
   git add . || true
   git commit -a -m "Updated Jenkins configuration ${GIT_BRANCH}" || true
-  if [ "X${FORCE_PUSH}" = "Xtrue" ] || [ $(git diff --name-only HEAD origin/$GIT_BRANCH | grep -v '/nextBuildNumber$' | wc -l) -gt 0 ] ; then
+  if ${FORCE_PUSH} || [ $(git diff --name-only HEAD origin/$GIT_BRANCH | grep -v '/nextBuildNumber$' | wc -l) -gt 0 ] ; then
     echo ">> Files changed"
     git diff --name-only HEAD origin/$GIT_BRANCH
     git push origin $GIT_BRANCH
