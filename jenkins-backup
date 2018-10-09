@@ -76,9 +76,8 @@ for inc in ${JOBS_INCLUDE_DIRS} 'config.xml' 'nextBuildNumber' ; do
   if [ "X${inc}" = "X" ] ; then continue ; fi
   JOBS_INCLUDE_FILTER="${JOBS_INCLUDE_FILTER} --include='**/${inc}'"
 done
-CMD="rsync -avm --delete --delete-excluded ${JOBS_INCLUDE_FILTER} $JOBS_EXCLUDE_FILTER $JENKINS_HOME/jobs/ $GIT_DIR/jobs/"
-echo $CMD
-eval $CMD
+echo rsync -avm --delete --delete-excluded ${JOBS_INCLUDE_FILTER} $JOBS_EXCLUDE_FILTER $JENKINS_HOME/jobs/ $GIT_DIR/jobs/
+eval rsync -avm --delete --delete-excluded ${JOBS_INCLUDE_FILTER} $JOBS_EXCLUDE_FILTER $JENKINS_HOME/jobs/ $GIT_DIR/jobs/
 
 for xml in $(ls $JENKINS_HOME/*.xml) ; do cp -f $xml $GIT_DIR/ ; done
 for s in identity.key.enc secrets/org.jenkinsci.main.modules.instance_identity.InstanceIdentity.KEY ; do
