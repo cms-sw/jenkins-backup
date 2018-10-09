@@ -2,7 +2,7 @@
 FORCE_ENC=false
 PUSH_CHG=false
 FORCE_PUSH=false
-BACK_REPO="https://:@gitlab.cern.ch:8443/cms-sw/cmsjenkins.git"
+BACK_REPO=""
 while [[ $# -gt 0 ]] ; do
   opt=$1; shift
   case $key in
@@ -12,6 +12,10 @@ while [[ $# -gt 0 ]] ; do
     -r|--repository) BACK_REPO=$1; shift ;;
   esac
 done
+if [ "X${BACK_REPO}" = "X" ] ; then
+  echo "ERROR: Missing backup repository. Usage $0 -r https://github.com/user/repo"
+  exit 1
+fi
 if [ "X$JENKINS_HOME" = "X" ] ; then JENKINS_HOME=/var/lib/jenkins ; fi
 if [ "X$WORKSPACE" = "X" ] ; then WORKSPACE=$(/bin/pwd) ; fi
 script_dir=$(dirname $0)
