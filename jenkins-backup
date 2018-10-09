@@ -7,7 +7,7 @@ if [ "X$BACK_REPO" = "X" ] ; then BACK_REPO=https://:@gitlab.cern.ch:8443/cms-sw
 if [ "X$JENKINS_HOME" = "X" ] ; then JENKINS_HOME=/var/lib/jenkins ; fi
 if [ "X$WORKSPACE" = "X" ] ; then WORKSPACE=$(/bin/pwd) ; fi
 script_dir=$(dirname $0)
-LOCALCLI_KEY=${JENKINS_HOME}/.ssh/id_dsa
+LOCALCLI_KEY=${HOME}/.ssh/id_dsa
 jenkins_prefix=
 if [ -e ${JENKINS_HOME}/jenkins_prefix ] ; then
   jenkins_prefix=$(cat ${JENKINS_HOME}/jenkins_prefix)
