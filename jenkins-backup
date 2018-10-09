@@ -8,7 +8,7 @@ if [ "X$JENKINS_HOME" = "X" ] ; then JENKINS_HOME=/var/lib/jenkins ; fi
 if [ "X$WORKSPACE" = "X" ] ; then WORKSPACE=$(/bin/pwd) ; fi
 script_dir=$(dirname $0)
 LOCALCLI_KEY=${JENKINS_HOME}/.ssh/id_dsa
-jenkins_prefix="jenkins"
+jenkins_prefix=
 if [ -e ${JENKINS_HOME}/jenkins_prefix ] ; then
   jenkins_prefix=$(cat ${JENKINS_HOME}/jenkins_prefix)
   if [ "${jenkins_prefix}" = "" ] ; then
@@ -16,7 +16,11 @@ if [ -e ${JENKINS_HOME}/jenkins_prefix ] ; then
     exit 1
   fi
 fi
-branch=$(java -jar ${JENKINS_HOME}/jenkins-cli.jar -i $LOCALCLI_KEY -s http://localhost:8080/${jenkins_prefix} version | cut -d. -f1,2 | sed 's|.$||;s|\.$|\.0|')
+LOCAL_JENKINS_URL=http://localhost:$(pgrep -x -a  -f ".*httpPort=.*" | tail -1 | tr ' ' '\n' | grep httpPort | sed 's|.*=||')
+if [ ! -f $WORKSPACE/jenkins-cli.jar ] ; then
+  /usr/bin/wget --no-check-certificate -O ${WORKSPACE}/jenkins-cli.jar "${LOCAL_JENKINS_URL}/${jenkins_prefix}/jnlpJars/jenkins-cli.jar" || true
+fi
+branch=$(java -jar ${WORKSPACE}/jenkins-cli.jar -i $LOCALCLI_KEY -s ${LOCAL_JENKINS_URL}/${jenkins_prefix} version | cut -d. -f1,2 | sed 's|.$||;s|\.$|\.0|')
 GIT_BRANCH=${jenkins_prefix}${branch}
 GIT_DIR=${WORKSPACE}/${GIT_BRANCH}
 
@@ -65,7 +69,7 @@ for s in ${JENKINS_SECRETS_FILES} ; do
   openssl enc -e -md sha256 -a -base64 -aes-256-cbc -salt -in $key -out ${ekey} -pass file:$LOCALCLI_KEY
 done
 
-java -jar  $JENKINS_HOME/jenkins-cli.jar -i $LOCALCLI_KEY -s http://localhost:8080/${jenkins_prefix} -remoting groovy $script_dir/get_plugins.groovy | grep -v 'scriptler' | sort > $GIT_DIR/pluginslist
+java -jar  ${WORKSPACE}/jenkins-cli.jar -i $LOCALCLI_KEY -s ${LOCAL_JENKINS_URL}/${jenkins_prefix} -remoting groovy $script_dir/get_plugins.groovy | grep -v 'scriptler' | sort > $GIT_DIR/pluginslist
 
 if [ $(grep ':' $GIT_DIR/pluginslist | wc -l) -eq 0 ] ; then
   echo "ERROR: unable to get plugins"
