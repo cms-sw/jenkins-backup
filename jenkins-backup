@@ -37,8 +37,8 @@ fi
 branch=$(java -jar ${WORKSPACE}/jenkins-cli.jar -i $LOCALCLI_KEY -s ${LOCAL_JENKINS_URL}/${jenkins_prefix} version)
 if ! $FULL_VERSION ; then branch=$(echo $branch | cut -d. -f1,2 | sed 's|.$||;s|\.$|\.0|') ; fi
 GIT_BRANCH=${jenkins_prefix}${branch}
-GIT_DIR=${WORKSPACE}/${GIT_BRANCH}
-
+GIT_DIR=${WORKSPACE}/.backup/${GIT_BRANCH}
+mkdir -p $(dirname $GIT_DIR)
 if [ ! -d $GIT_DIR ] ; then git clone $BACK_REPO $GIT_DIR ; fi
 cd $GIT_DIR
 if [ $(git branch -a | grep remotes/origin/${GIT_BRANCH} | wc -l) -gt 0 ] ; then
