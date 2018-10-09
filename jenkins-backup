@@ -4,6 +4,7 @@ PUSH_CHG=false
 FORCE_PUSH=false
 FULL_VERSION=false
 BACK_REPO=""
+JOBS_EXCLUDE_FILTER=""
 while [[ $# -gt 0 ]] ; do
   opt=$1; shift
   case $opt in
@@ -12,6 +13,7 @@ while [[ $# -gt 0 ]] ; do
     -f|--force)      FORCE_PUSH=true;;
     -v|--version)    FULL_VERSION=true;;
     -r|--repository) BACK_REPO=$1; shift ;;
+    -x|--exclude)    JOBS_EXCLUDE_FILTER=$1; shift
   esac
 done
 if [ "X${BACK_REPO}" = "X" ] ; then
@@ -62,7 +64,7 @@ done
 rm -rf $GIT_DIR/scriptler
 
 mkdir -p $GIT_DIR/jobs $GIT_DIR/secrets
-rsync -av --delete --delete-excluded --exclude="*/builds/" --exclude="*/ws/" --exclude="*/disk-usage.xml" $JENKINS_HOME/jobs/ $GIT_DIR/jobs/
+rsync -av --delete --delete-excluded $JOBS_EXCLUDE_FILTER --exclude="*/builds/*" --exclude="*/ws/*" --exclude="*/lastStable/*" --exclude="*/lastSuccessful/*" --exclude="*/disk-usage.xml" $JENKINS_HOME/jobs/ $GIT_DIR/jobs/
 
 for xml in $(ls $JENKINS_HOME/*.xml) ; do cp -f $xml $GIT_DIR/ ; done
 for s in identity.key.enc secrets/org.jenkinsci.main.modules.instance_identity.InstanceIdentity.KEY ; do
