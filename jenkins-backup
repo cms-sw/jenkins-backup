@@ -4,7 +4,8 @@ PUSH_CHG=$2
 FORCE_PUSH=$3
 BACK_REPO=$4
 if [ "X$BACK_REPO" = "X" ] ; then BACK_REPO=https://:@gitlab.cern.ch:8443/cms-sw/cmsjenkins.git ; fi
-JENKINS_HOME=/var/lib/jenkins
+if [ "X$JENKINS_HOME" = "X" ] ; then JENKINS_HOME=/var/lib/jenkins ; fi
+if [ "X$WORKSPACE" = "X" ] ; then WORKSPACE=$(/bin/pwd) ; fi
 script_dir=$(dirname $0)
 LOCALCLI_KEY=${JENKINS_HOME}/.ssh/id_dsa
 jenkins_prefix="jenkins"
@@ -17,12 +18,9 @@ if [ -e ${JENKINS_HOME}/jenkins_prefix ] ; then
 fi
 branch=$(java -jar ${JENKINS_HOME}/jenkins-cli.jar -i $LOCALCLI_KEY -s http://localhost:8080/${jenkins_prefix} version | cut -d. -f1,2 | sed 's|.$||;s|\.$|\.0|')
 GIT_BRANCH=${jenkins_prefix}${branch}
-GIT_DIR=${JENKINS_HOME}/jenkins-backup/${GIT_BRANCH}
+GIT_DIR=${WORKSPACE}/${GIT_BRANCH}
 
-if [ ! -d $GIT_DIR ] ; then
-  mkdir -p ${JENKINS_HOME}/jenkins-backup
-  git clone $BACK_REPO $GIT_DIR
-fi
+if [ ! -d $GIT_DIR ] ; then git clone $BACK_REPO $GIT_DIR ; fi
 cd $GIT_DIR
 if [ $(git branch -a | grep remotes/origin/${GIT_BRANCH} | wc -l) -gt 0 ] ; then
   git checkout ${GIT_BRANCH} || true
