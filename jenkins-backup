@@ -62,7 +62,7 @@ done
 rm -rf $GIT_DIR/scriptler
 
 mkdir -p $GIT_DIR/jobs $GIT_DIR/secrets
-rsync -av --delete --delete-excluded --exclude="*builds*" --exclude="*/disk-usage.xml" $JENKINS_HOME/jobs/ $GIT_DIR/jobs/
+rsync -av --delete --delete-excluded --exclude="*/builds/" --exclude="*/ws/" --exclude="*/disk-usage.xml" $JENKINS_HOME/jobs/ $GIT_DIR/jobs/
 
 for xml in $(ls $JENKINS_HOME/*.xml) ; do cp -f $xml $GIT_DIR/ ; done
 for s in identity.key.enc secrets/org.jenkinsci.main.modules.instance_identity.InstanceIdentity.KEY ; do
