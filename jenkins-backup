@@ -78,7 +78,6 @@ for inc in ${JOBS_INCLUDE_DIRS} 'config.xml' 'nextBuildNumber' ; do
   JOBS_INCLUDE_FILTER="${JOBS_INCLUDE_FILTER} --include='**/${inc}'"
 done
 set -x
-echo rsync -av --delete --delete-excluded ${JOBS_INCLUDE_FILTER} $JOBS_EXCLUDE_FILTER $JENKINS_HOME/jobs/ $GIT_DIR/jobs/
 eval rsync -av --delete --delete-excluded ${JOBS_INCLUDE_FILTER} $JOBS_EXCLUDE_FILTER $JENKINS_HOME/jobs/ $GIT_DIR/jobs/
 
 for xml in $(ls $JENKINS_HOME/*.xml) ; do cp -f $xml $GIT_DIR/ ; done
