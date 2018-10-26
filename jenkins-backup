@@ -109,7 +109,7 @@ fi
 if $PUSH_CHG ; then
   git add . || true
   git commit -a -m "Updated Jenkins configuration ${GIT_BRANCH}" || true
-  if ${FORCE_PUSH} || [ $(git diff --name-only HEAD origin/$GIT_BRANCH | grep -v '/nextBuildNumber$' | wc -l) -gt 0 ] ; then
+  if ${FORCE_PUSH} || [ $(git diff --name-only HEAD origin/$GIT_BRANCH | grep -v 'queue.xml' | grep -v '/nextBuildNumber$' | wc -l) -gt 0 ] ; then
     echo ">> Files changed"
     git diff --name-only HEAD origin/$GIT_BRANCH
     git push origin $GIT_BRANCH
