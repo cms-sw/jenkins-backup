@@ -103,7 +103,7 @@ eval rsync -av --delete --delete-excluded ${JOBS_INCLUDE_FILTER} ${JOBS_EXCLUDE_
 
 for xml in $(ls $JENKINS_HOME/*.xml) ; do cp -f $xml $GIT_DIR/ ; done
 
-rsync -av --include="*.conf" --delete-excluded --exclude='**/.git' --exclude='**/.git/*' --exclude='**/.ssh' --exclude='**/.ssh/*' $JENKINS_HOME/secrets/ $GIT_DIR/secrets/
+rsync -av --include="*.conf" --exclude='**/.git' --exclude='**/.git/*' --exclude='**/.ssh' --exclude='**/.ssh/*' $JENKINS_HOME/secrets/ $GIT_DIR/secrets/
 for c in $(find $GIT_DIR/secrets -name "*.conf" -type f | sed "s|$GIT_DIR/||") ; do
   if [ ! -f $JENKINS_HOME/$c ] ; then
     rm -f $GIT_DIR/$c
