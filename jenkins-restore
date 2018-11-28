@@ -1,6 +1,5 @@
 #!/bin/bash -ex
-JENKINS_HOME=$1
-REPO=$2
+REPO=""
 DEFAULT_BRANCH=master
 FULL_VERSION=false
 LOCALCLI_KEY=${HOME}/.ssh/id_dsa
