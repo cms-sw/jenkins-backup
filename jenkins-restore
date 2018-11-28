@@ -12,7 +12,7 @@ while [[ $# -gt 0 ]] ; do
     -r|--repository) REPO=$1; shift ;;
     -b|--branch)     DEFAULT_BRANCH=$1; shift;;
     -k|--key)        LOCALCLI_KEY=$1; shift;;
-    -K|--kinit       KINIT=$1; shift ;;
+    -K|--kinit)      KINIT=$1; shift ;;
   esac
 done
 if [ "X$JENKINS_HOME" = "X" ] ; then JENKINS_HOME=/var/lib/jenkins ; fi
