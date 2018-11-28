@@ -12,6 +12,7 @@ while [[ $# -gt 0 ]] ; do
     -r|--repository) REPO=$1; shift ;;
     -b|--branch)     DEFAULT_BRANCH=$1; shift;;
     -k|--key)        LOCALCLI_KEY=$1; shift;;
+    -K|--kinit       KINIT=$1; shift ;;
   esac
 done
 if [ "X$JENKINS_HOME" = "X" ] ; then JENKINS_HOME=/var/lib/jenkins ; fi
@@ -40,6 +41,12 @@ fi
 if ! $FULL_VERSION ; then branch=$(echo $branch | cut -d. -f1,2 | sed 's|.$||;s|\.$|\.0|') ; fi
 GIT_BRANCH=${jenkins_prefix}${branch}
 GIT_DIR=${JENKINS_HOME}/plugin-ref/${jenkins_prefix}${GIT_BRANCH}
+KR5_FILE=""
+if [ "X$KINIT" != "X" ] ; then
+  KR5_FILE=${JENKINS_HOME}/plugin-ref/krb5cc_$(whoami)
+  export KRB5CCNAME=FILE:${KR5_FILE}
+  kinit $(echo $KINIT | cut -d: -f1) -k -t $(echo $KINIT | cut -d: -f2)
+fi
 if [ ! -d $GIT_DIR ] ; then git clone $REPO $GIT_DIR ; fi
 cd $GIT_DIR
 if [ $(git branch -a | grep "remotes/origin/${GIT_BRANCH}$" | wc -l) -eq 0 ] ; then GIT_BRANCH=${DEFAULT_BRANCH} ; fi
@@ -47,7 +54,6 @@ git checkout $GIT_BRANCH
 git clean -fdx
 git checkout -q --force $GIT_BRANCH
 git reset --hard origin/$GIT_BRANCH
-
 for s in $(find $GIT_DIR -name '*.xml.jenkins-backup-enc' -type f | sed 's|.jenkins-backup-enc$||') ; do
   openssl enc -d -md sha256 -a -base64 -aes-256-cbc -in ${s}.jenkins-backup-enc -out $s -pass file:$LOCALCLI_KEY
 done
@@ -86,4 +92,4 @@ if [ "X${jenkins_prefix}" != "X" ] ; then
     fi
   done
 fi
-
+if [ "X$KR5_FILE" != "X" ] ; then rm -f $KR5_FILE ; fi
