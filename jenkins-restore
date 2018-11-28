@@ -87,7 +87,7 @@ MASTER_EXEC=$(getconf _NPROCESSORS_ONLN)
 if [ $MASTER_EXEC -lt 2 ] ; then MASTER_EXEC=2; fi
 sed -i -e "s|<numExecutors>[0-9]*</numExecutors>|<numExecutors>${MASTER_EXEC}</numExecutors>|" $JENKINS_HOME/config.xml
 if [ $(grep '>http://localhost:[^<]*<' $JENKINS_HOME/config.xml | wc -l) -gt 0 ] ; then
-  sed -i -e "s|>http://localhost:[^<]*<|${LOCAL_JENKINS_URL}/${jenkins_prefix}|" $JENKINS_HOME/config.xml
+  sed -i -e "s|>http://localhost:[^<]*<|>${LOCAL_JENKINS_URL}/${jenkins_prefix}<|" $JENKINS_HOME/config.xml
 fi
 if [ "X${jenkins_prefix}" != "X" ] ; then
   sed -i -e "s|:${JENKINS_PORT}/jenkins|:${JENKINS_PORT}/${jenkins_prefix}|" $JENKINS_HOME/config.xml
