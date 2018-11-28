@@ -150,6 +150,10 @@ fi
 
 find ${JENKINS_HOME}/jobs -follow -mindepth 2 -maxdepth 2 -name 'config.xml' -type f |  xargs grep '<disabled>true' | sed "s|${JENKINS_HOME}/jobs/||;s|/.*||" | sort | uniq > ${GIT_DIR}/disabled-jobs.txt
 
+for k in LOCAL_JENKINS_DSA_KEY LOCAL_JENKINS_URL JENKINS_PREFIX ; do
+  sed -i "/>$k</{n;s/>[^>]*</>@$k@</}" $GIT_DIR/config.xml
+done
+
 if $PUSH_CHG ; then
   git add . || true
   git commit -a -m "Updated Jenkins configuration ${GIT_BRANCH}" || true
