@@ -32,7 +32,7 @@ if [ -f ${JENKINS_HOME}/jenkins_prefix ] ; then
   fi
 fi
 branch=$(java -jar ${JENKINS_HOME}/jenkins-cli.jar -i $LOCALCLI_KEY -s ${LOCAL_JENKINS_URL}/${jenkins_prefix} version)
-if [ "X$branch" = "X" ] ; then 
+if [ "X$branch" = "X" ] ; then
   echo "Error: Unable to find jenkins version"
   exit 1
 fi

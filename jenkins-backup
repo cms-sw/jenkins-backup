@@ -42,6 +42,10 @@ if [ ! -f $WORKSPACE/jenkins-cli.jar ] ; then
   /usr/bin/wget --no-check-certificate -O ${WORKSPACE}/jenkins-cli.jar "${LOCAL_JENKINS_URL}/${jenkins_prefix}/jnlpJars/jenkins-cli.jar" || true
 fi
 branch=$(java -jar ${WORKSPACE}/jenkins-cli.jar -i $LOCALCLI_KEY -s ${LOCAL_JENKINS_URL}/${jenkins_prefix} version)
+if [ "X$branch" = "X" ] ; then
+  echo "Error: Unable to find jenkins version"
+  exit 1
+fi
 if ! $FULL_VERSION ; then branch=$(echo $branch | cut -d. -f1,2 | sed 's|.$||;s|\.$|\.0|') ; fi
 GIT_BRANCH=${jenkins_prefix}${branch}
 GIT_DIR=${WORKSPACE}/.backup/${GIT_BRANCH}
