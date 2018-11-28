@@ -78,7 +78,9 @@ done
 find ${JENKINS_HOME}/jobs -follow -mindepth 2 -maxdepth 2 -name 'config.xml' -type f |  xargs -i sed -i -e 's|<disabled>false|<disabled>true|' '{}'
 
 for s in $(find $GIT_DIR -name '*.jenkins-backup-enc' -type f | grep -v '.xml.jenkins-backup-enc' | sed "s|^${GIT_DIR}/||;s|.jenkins-backup-enc$||") ; do
+  rm -f $JENKINS_HOME/$s
   openssl enc -d -md sha256 -a -base64 -aes-256-cbc -in $GIT_DIR/${s}.jenkins-backup-enc -out $JENKINS_HOME/$s -pass file:$LOCALCLI_KEY
+  chmod 0400 $JENKINS_HOME/$s
 done
 
 MASTER_EXEC=$(getconf _NPROCESSORS_ONLN)
