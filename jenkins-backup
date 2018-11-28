@@ -6,6 +6,7 @@ FULL_VERSION=false
 BACK_REPO=""
 JOBS_EXCLUDE_DIRS=""
 JOBS_INCLUDE_DIRS=""
+LOCALCLI_KEY=${HOME}/.ssh/id_dsa
 while [[ $# -gt 0 ]] ; do
   opt=$1; shift
   case $opt in
@@ -13,9 +14,11 @@ while [[ $# -gt 0 ]] ; do
     -p|--push)       PUSH_CHG=true;;
     -f|--force)      FORCE_PUSH=true;;
     -v|--version)    FULL_VERSION=true;;
+    -h|--home)       JENKINS_HOME=$1; shift ;;
     -r|--repository) BACK_REPO=$1; shift ;;
     -x|--exclude)    JOBS_EXCLUDE_DIRS=$1; shift;;
     -i|--include)    JOBS_INCLUDE_DIRS=$1; shift;;
+    -k|--key)        LOCALCLI_KEY==$1; shift;;
   esac
 done
 if [ "X${BACK_REPO}" = "X" ] ; then
@@ -25,7 +28,6 @@ fi
 if [ "X$JENKINS_HOME" = "X" ] ; then JENKINS_HOME=/var/lib/jenkins ; fi
 if [ "X$WORKSPACE" = "X" ] ; then WORKSPACE=$(/bin/pwd) ; fi
 script_dir=$(dirname $0)
-LOCALCLI_KEY=${HOME}/.ssh/id_dsa
 jenkins_prefix=
 if [ -e ${JENKINS_HOME}/jenkins_prefix ] ; then
   jenkins_prefix=$(cat ${JENKINS_HOME}/jenkins_prefix)
@@ -34,7 +36,8 @@ if [ -e ${JENKINS_HOME}/jenkins_prefix ] ; then
     exit 1
   fi
 fi
-LOCAL_JENKINS_URL=http://localhost:$(pgrep -x -a  -f ".*httpPort=.*" | tail -1 | tr ' ' '\n' | grep httpPort | sed 's|.*=||')
+JENKINS_PORT=$(pgrep -x -a  -f ".*httpPort=.*" | tail -1 | tr ' ' '\n' | grep httpPort | sed 's|.*=||')
+LOCAL_JENKINS_URL=http://localhost:${JENKINS_PORT}
 if [ ! -f $WORKSPACE/jenkins-cli.jar ] ; then
   /usr/bin/wget --no-check-certificate -O ${WORKSPACE}/jenkins-cli.jar "${LOCAL_JENKINS_URL}/${jenkins_prefix}/jnlpJars/jenkins-cli.jar" || true
 fi
@@ -59,16 +62,30 @@ else
   git push origin ${GIT_BRANCH}
 fi
 
-for dir in labels users nodes log ; do
+for dir in labels users nodes log; do
+  if [ ! -e $JENKINS_HOME/$dir ] ; then
+     rm -rf $GIT_DIR/$dir
+     continue
+  fi
   mkdir -p $GIT_DIR/$dir
-  rsync -av --delete --include="*.xml" --delete-excluded  --exclude='**/.git' --exclude='**/.git/*' $JENKINS_HOME/$dir/ $GIT_DIR/$dir/
+  rsync -av --delete --include="*.xml" --delete-excluded --exclude='**/.git' --exclude='**/.git/*' --exclude='**/.ssh' --exclude='**/.ssh/*' $JENKINS_HOME/$dir/ $GIT_DIR/$dir/
 done
+
+for dir in userContent ; do
+  if [ ! -e $JENKINS_HOME/$dir ] ; then
+     rm -rf $GIT_DIR/$dir
+     continue
+  fi
+  mkdir -p $GIT_DIR/$dir
+  rsync -av --delete --delete-excluded --exclude='**/.git' --exclude='**/.git/*' --exclude='**/.ssh' --exclude='**/.ssh/*' $JENKINS_HOME/$dir/ $GIT_DIR/$dir/
+done
+
 rm -rf $GIT_DIR/scriptler
 
 mkdir -p $GIT_DIR/jobs $GIT_DIR/secrets
 set +x
 JOBS_EXCLUDE_FILTER="--exclude='*/disk-usage.xml'"
-for exl in ${JOBS_EXCLUDE_DIRS} '.git' 'builds' 'lastStable' 'lastSuccessful' ; do
+for exl in ${JOBS_EXCLUDE_DIRS} '.git' 'builds' 'lastStable' 'lastSuccessful' '.ssh' ; do
   if [ "X${exl}" = "X" ] ; then continue ; fi
   JOBS_EXCLUDE_FILTER="${JOBS_EXCLUDE_FILTER} --exclude='**/${exl}' --exclude='**/${exl}/*'"
 done
@@ -78,18 +95,27 @@ for inc in ${JOBS_INCLUDE_DIRS} 'config.xml' 'nextBuildNumber' ; do
   JOBS_INCLUDE_FILTER="${JOBS_INCLUDE_FILTER} --include='**/${inc}'"
 done
 set -x
-eval rsync -av --delete --delete-excluded ${JOBS_INCLUDE_FILTER} $JOBS_EXCLUDE_FILTER $JENKINS_HOME/jobs/ $GIT_DIR/jobs/
+eval rsync -av --delete --delete-excluded ${JOBS_INCLUDE_FILTER} ${JOBS_EXCLUDE_FILTER} $JENKINS_HOME/jobs/ $GIT_DIR/jobs/
 
 for xml in $(ls $JENKINS_HOME/*.xml) ; do cp -f $xml $GIT_DIR/ ; done
-for s in identity.key.enc secrets/org.jenkinsci.main.modules.instance_identity.InstanceIdentity.KEY ; do
-  rm -f  $GIT_DIR/$s || true
-done
 
-. ${script_dir}/jenkins-secrets
-for s in ${JENKINS_SECRETS_FILES} ; do
-  key=$JENKINS_HOME/$s
-  bkey=${GIT_DIR}/${s}.chksum
-  ekey=$GIT_DIR/${s}.enc
+rsync -av --delete --include="*.conf" --delete-excluded --exclude='**/.git' --exclude='**/.git/*' --exclude='**/.ssh' --exclude='**/.ssh/*' $JENKINS_HOME/secrets/ $GIT_DIR/$dir/secrets/
+
+SECRETS_FILES="$JENKINS_HOME/secret.key $JENKINS_HOME/secret.key.not-so-secret"
+SECRETS_FILES="${SECRETS_FILES} $(grep '>{[^}]*}<' $JENKINS_HOME/*.xml | sed 's|\.xml:.*|.xml|' | sort | uniq)"
+SECRETS_FILES="${SECRETS_FILES} $(find $JENKINS_HOME/secrets -type f | grep -v '\.conf$')"
+
+for key in ${SECRETS_FILES} ; do
+  s=$(echo $key | sed "s|$JENKINS_HOME/||")
+  rm -f ${GIT_DIR}/${s}
+  rm -f ${GIT_DIR}/${s}.chksum $GIT_DIR/${s}.enc
+  if [ ! -e $key ] ; then
+    rm -f ${GIT_DIR}/${s}.jenkins-backup-*
+    continue
+  fi
+  mkdir -p ${GIT_DIR}/$(dirname $s)
+  bkey=${GIT_DIR}/${s}.jenkins-backup-chksum
+  ekey=$GIT_DIR/${s}.jenkins-backup-enc
   chksum=$(sha256sum -b $key | sed 's| .*||')
   if [ -f $bkey -a -f $ekey ] ; then
     if [ "$chksum" = "$(cat $bkey)" ] ; then
@@ -100,12 +126,21 @@ for s in ${JENKINS_SECRETS_FILES} ; do
   openssl enc -e -md sha256 -a -base64 -aes-256-cbc -salt -in $key -out ${ekey} -pass file:$LOCALCLI_KEY
 done
 
+for s in $(find ${GIT_DIR} -name '*.jenkins-backup-enc' -type f | sed "s|${GIT_DIR}/||;s|.jenkins-backup-enc$||") ; do
+  if [ ! -e ${JENKINS_HOME}/${s} ] ; then
+    rm -f ${GIT_DIR}/${s}.jenkins-backup-*
+  fi
+done
+
 java -jar  ${WORKSPACE}/jenkins-cli.jar -i $LOCALCLI_KEY -s ${LOCAL_JENKINS_URL}/${jenkins_prefix} -remoting groovy $script_dir/get_plugins.groovy | grep -v 'scriptler' | sort > $GIT_DIR/pluginslist
 
 if [ $(grep ':' $GIT_DIR/pluginslist | wc -l) -eq 0 ] ; then
   echo "ERROR: unable to get plugins"
   exit 1
 fi
+
+find ${JENKINS_HOME}/jobs -follow -mindepth 2 -maxdepth 2 -name 'config.xml' -type f |  xargs grep '<disabled>true' | sed "s|${JENKINS_HOME}/jobs/||;s|/.*||" | sort | uniq > ${GIT_DIR}/disabled-jobs.txt
+
 if $PUSH_CHG ; then
   git add . || true
   git commit -a -m "Updated Jenkins configuration ${GIT_BRANCH}" || true
@@ -115,4 +150,3 @@ if $PUSH_CHG ; then
     git push origin $GIT_BRANCH
   fi
 fi
-

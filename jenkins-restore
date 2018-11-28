@@ -1,24 +1,55 @@
 #!/bin/bash -ex
-JENKINS_HOME=$1
-REPO=$2
-export JENKINS_PLUGIN_REF="${JENKINS_HOME}/plugin-ref/plugins"
-script_dir=$(dirname $0)
-jenkins_prefix=$(cat ${JENKINS_HOME}/jenkins_prefix)
-if [ "${jenkins_prefix}" = "" ] ; then
-  echo "ERROR: Empty ${JENKINS_HOME}/jenkins_prefix. Please populate it with jenkins prefix e.g. jenkins and then run"
+REPO=""
+DEFAULT_BRANCH=master
+FULL_VERSION=false
+LOCALCLI_KEY=${HOME}/.ssh/id_dsa
+while [[ $# -gt 0 ]] ; do
+  opt=$1; shift
+  case $opt in
+    -v|--version)    FULL_VERSION=true;;
+    -h|--home)       JENKINS_HOME=$1; shift ;;
+    -r|--repository) REPO=$1; shift ;;
+    -b|--branch)     DEFAULT_BRANCH=$1; shift;;
+    -k|--key)        LOCALCLI_KEY==$1; shift;;
+  esac
+done
+if [ "X$JENKINS_HOME" = "X" ] ; then JENKINS_HOME=/var/lib/jenkins ; fi
+if [ "X${REPO}" = "X" ] ; then
+  echo "ERROR: Missing backup repository. Usage $0 -r https://github.com/user/repo [-v|--version] [-b|--branch default-git-branch]"
   exit 1
 fi
-branch=$(java -jar ${JENKINS_HOME}/jenkins-cli.jar -s http://localhost:8080/${jenkins_prefix} version | cut -d. -f1,2 | sed 's|.$||;s|\.$|\.0|')
+
+JENKINS_PORT=$(pgrep -x -a  -f ".*httpPort=.*" | tail -1 | tr ' ' '\n' | grep httpPort | sed 's|.*=||')
+LOCAL_JENKINS_URL=http://localhost:${JENKINS_PORT}
+export JENKINS_PLUGIN_REF="${JENKINS_HOME}/plugin-ref/plugins"
+script_dir=$(dirname $0)
+jenkins_prefix=""
+if [ -f ${JENKINS_HOME}/jenkins_prefix ] ; then
+  jenkins_prefix=$(cat ${JENKINS_HOME}/jenkins_prefix)
+  if [ "${jenkins_prefix}" = "" ] ; then
+    echo "ERROR: Empty ${JENKINS_HOME}/jenkins_prefix. Please populate it with jenkins prefix e.g. jenkins and then run"
+    exit 1
+  fi
+fi
+branch=$(java -jar ${JENKINS_HOME}/jenkins-cli.jar -i $LOCALCLI_KEY -s ${LOCAL_JENKINS_URL}/${jenkins_prefix} version)
 if [ "X$branch" = "X" ] ; then 
   echo "Error: Unable to find jenkins version"
   exit 1
 fi
+if ! $FULL_VERSION ; then branch=$(echo $branch | cut -d. -f1,2 | sed 's|.$||;s|\.$|\.0|') ; fi
 GIT_BRANCH=${jenkins_prefix}${branch}
-GIT_DIR=${JENKINS_HOME}/plugin-ref/cmsjenkins-${GIT_BRANCH}
+GIT_DIR=${JENKINS_HOME}/plugin-ref/${jenkins_prefix}${GIT_BRANCH}
 if [ ! -d $GIT_DIR ] ; then git clone $REPO $GIT_DIR ; fi
 cd $GIT_DIR
-if [ $(git branch -a | grep "remotes/origin/${GIT_BRANCH}$" | wc -l) -eq 0 ] ; then GIT_BRANCH=jenkins${branch} ; fi
+if [ $(git branch -a | grep "remotes/origin/${GIT_BRANCH}$" | wc -l) -eq 0 ] ; then GIT_BRANCH=${DEFAULT_BRANCH} ; fi
 git checkout $GIT_BRANCH
+git clean -fdx
+git checkout -q --force $GIT_BRANCH
+git reset --hard origin/$GIT_BRANCH
+
+for s in $(find $GIT_DIR -name '*.xml.jenkins-backup-enc' -type f | sed 's|.jenkins-backup-enc$||') ; do
+  openssl enc -d -md sha256 -a -base64 -aes-256-cbc -in ${s}.jenkins-backup-enc -out $s -pass file:$LOCALCLI_KEY
+done
 
 find $GIT_DIR -name '*.xml' -type f | xargs grep ' plugin=' | sed 's|.* plugin="||;s|@.*||' | grep -v '^pipeline-' > $GIT_DIR/plugin.used
 echo 'matrix-auth' >> $GIT_DIR/plugin.used
@@ -32,32 +63,26 @@ ${script_dir}/install-plugins.sh $GIT_DIR/pluginslist $GIT_DIR/plugins.filter
 
 rsync -av --delete ${JENKINS_HOME}/plugin-ref/plugins/ ${JENKINS_HOME}/plugins/
 for xml in $(ls $GIT_DIR/*.xml) ; do cp -f $xml $JENKINS_HOME/ ; done
-for dir in labels users nodes log jobs ; do
+for dir in labels users nodes log jobs userContent ; do
   mkdir -p ${JENKINS_HOME}/${dir}
   rsync -av $GIT_DIR/${dir}/ ${JENKINS_HOME}/${dir}/
 done
 
-if [ ! -d ${JENKINS_HOME}/workspace/cache/cms-bot ] ; then
-  mkdir -p ${JENKINS_HOME}/workspace/cache
-  pushd ${JENKINS_HOME}/workspace/cache
-    git clone https://github.com/cms-sw/cms-bot
-  popd
-fi
-
 find ${JENKINS_HOME}/jobs -follow -mindepth 2 -maxdepth 2 -name 'config.xml' -type f |  xargs -i sed -i -e 's|<disabled>false|<disabled>true|' '{}'
 
-mkdir -p  ${JENKINS_HOME}/secrets
-. ${script_dir}/jenkins-secrets
-for s in ${JENKINS_SECRETS_FILES}  ; do
-  if [ ! -f $GIT_DIR/${s}.enc ] ; then continue ; fi
-  openssl enc -d -md sha256 -a -base64 -aes-256-cbc -in $GIT_DIR/${s}.enc -out $JENKINS_HOME/$s -pass file:${JENKINS_HOME}/.ssh/id_dsa
+for s in $(find $GIT_DIR -name '*.jenkins-backup-enc' -type f | grep -v '.xml.jenkins-backup-enc' | sed "s|^${GIT_DIR}/||;s|.jenkins-backup-enc$||") ; do
+  openssl enc -d -md sha256 -a -base64 -aes-256-cbc -in $GIT_DIR/${s}.jenkins-backup-enc -out $JENKINS_HOME/$s -pass file:$LOCALCLI_KEY
 done
+
 MASTER_EXEC=$(getconf _NPROCESSORS_ONLN)
 if [ $MASTER_EXEC -lt 2 ] ; then MASTER_EXEC=2; fi
-sed -i -e "s|:8080/jenkins|:8080/${jenkins_prefix}|" $JENKINS_HOME/config.xml
 sed -i -e "s|<numExecutors>[0-9]*</numExecutors>|<numExecutors>${MASTER_EXEC}</numExecutors>|" $JENKINS_HOME/config.xml
-for xml in hudson.tasks.Mailer.xml jenkins.model.JenkinsLocationConfiguration.xml jenkins.plugins.slack.SlackNotifier.xml ; do
-  if [ -e $JENKINS_HOME/$xml ] ; then
-    sed -i -e "s|cmssdt.cern.ch/jenkins|cmssdt.cern.ch/${jenkins_prefix}|" $JENKINS_HOME/$xml
-  fi
-done
+if [ "X${jenkins_prefix}" != "X" ] ; then
+  sed -i -e "s|:${JENKINS_PORT}/jenkins|:${JENKINS_PORT}/${jenkins_prefix}|" $JENKINS_HOME/config.xml
+  for xml in hudson.tasks.Mailer.xml jenkins.model.JenkinsLocationConfiguration.xml jenkins.plugins.slack.SlackNotifier.xml ; do
+    if [ -e $JENKINS_HOME/$xml ] ; then
+      sed -i -e "s|cmssdt.cern.ch/jenkins|cmssdt.cern.ch/${jenkins_prefix}|" $JENKINS_HOME/$xml
+    fi
+  done
+fi
+
