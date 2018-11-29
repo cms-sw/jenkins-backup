@@ -105,6 +105,14 @@ eval rsync -av --delete --delete-excluded ${JOBS_INCLUDE_FILTER} ${JOBS_EXCLUDE_
 
 for xml in $(ls $JENKINS_HOME/*.xml) ; do cp -f $xml $GIT_DIR/ ; done
 
+for k in LOCAL_JENKINS_DSA_KEY LOCAL_JENKINS_URL JENKINS_PREFIX ; do
+  sed -i "/>$k</{n;s/>[^>]*</>@$k@</}" $GIT_DIR/config.xml
+done
+
+for f in $(grep "${JENKINS_URL}" ${GIT_DIR}/*.xml | sed 's|.xml:.*|.xml|' | sort | uniq) ; do
+  sed -i -e "s|${JENKINS_URL}|@JENKINS_URL@|" $f
+done
+
 rsync -av --include="*.conf" --exclude='**/.git' --exclude='**/.git/*' --exclude='**/.ssh' --exclude='**/.ssh/*' $JENKINS_HOME/secrets/ $GIT_DIR/secrets/
 for c in $(find $GIT_DIR/secrets -name "*.conf" -type f | sed "s|$GIT_DIR/||") ; do
   if [ ! -f $JENKINS_HOME/$c ] ; then
@@ -118,7 +126,7 @@ SECRETS_FILES="${SECRETS_FILES} $(find $JENKINS_HOME/secrets -type f | grep -v '
 
 for key in ${SECRETS_FILES} ; do
   s=$(echo $key | sed "s|$JENKINS_HOME/||")
-  rm -f ${GIT_DIR}/${s}
+  if [ -e ${GIT_DIR}/${s} ] ; then key=${GIT_DIR}/${s} ; fi
   rm -f ${GIT_DIR}/${s}.chksum $GIT_DIR/${s}.enc
   if [ ! -e $key ] ; then
     rm -f ${GIT_DIR}/${s}.jenkins-backup-*
@@ -135,6 +143,7 @@ for key in ${SECRETS_FILES} ; do
   fi
   echo "$chksum" >  $bkey
   openssl enc -e -md sha256 -a -base64 -aes-256-cbc -salt -in $key -out ${ekey} -pass file:$LOCALCLI_KEY
+  if [ -f ${GIT_DIR}/${s} ] ; then rm -f ${GIT_DIR}/${s} ; fi
 done
 
 for s in $(find ${GIT_DIR} -name '*.jenkins-backup-enc' -type f | sed "s|${GIT_DIR}/||;s|.jenkins-backup-enc$||") ; do
@@ -151,14 +160,6 @@ if [ $(grep ':' $GIT_DIR/pluginslist | wc -l) -eq 0 ] ; then
 fi
 
 find ${JENKINS_HOME}/jobs -follow -mindepth 2 -maxdepth 2 -name 'config.xml' -type f |  xargs grep '<disabled>true' | sed "s|${JENKINS_HOME}/jobs/||;s|/.*||" | sort | uniq > ${GIT_DIR}/disabled-jobs.txt
-
-for k in LOCAL_JENKINS_DSA_KEY LOCAL_JENKINS_URL JENKINS_PREFIX ; do
-  sed -i "/>$k</{n;s/>[^>]*</>@$k@</}" $GIT_DIR/config.xml
-done
-
-for f in $(grep "${JENKINS_URL}" ${GIT_DIR}/*.xml | sed 's|.xml:.*|.xml|' | sort | uniq) ; do
-  sed -i -e "s|${JENKINS_URL}|@JENKINS_URL@|" $f
-done
 
 if $PUSH_CHG ; then
   git add . || true
