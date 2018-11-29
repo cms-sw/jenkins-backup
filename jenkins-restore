@@ -84,7 +84,7 @@ for s in $(find $GIT_DIR -name '*.jenkins-backup-enc' -type f | grep -v '.xml.je
   chmod 0400 $JENKINS_HOME/$s
 done
 
-for f in $(grep "@JENKINS_URL@" ${GIT_DIR}/*.xml | sed 's|.xml:.*|.xml|' | sort | uniq) ; do
+for f in $(grep "@JENKINS_URL@" ${JENKINS_HOME}/*.xml | sed 's|.xml:.*|.xml|' | sort | uniq) ; do
   sed -i -e "s|@JENKINS_URL@|${JENKINS_URL}|" $f
 done
 
