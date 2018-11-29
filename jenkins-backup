@@ -115,7 +115,10 @@ for f in $(grep "${JENKINS_URL}" ${GIT_DIR}/*.xml | sed 's|.xml:.*|.xml|' | sort
   sed -i -e "s|${JENKINS_URL}|@JENKINS_URL@|" $f
 done
 
-rsync -av --include="*.conf" --exclude='**/.git' --exclude='**/.git/*' --exclude='**/.ssh' --exclude='**/.ssh/*' $JENKINS_HOME/secrets/ $GIT_DIR/secrets/
+for conf in $(find $JENKINS_HOME/secrets -name '*.conf' -type f | sed "s|${JENKINS_HOME}/||") ; do
+  mkdir -p $GIT_DIR/$(dirname ${conf})
+  cp -f $JENKINS_HOME/${conf} $GIT_DIR/${conf}
+done
 for c in $(find $GIT_DIR/secrets -name "*.conf" -type f | sed "s|$GIT_DIR/||") ; do
   if [ ! -f $JENKINS_HOME/$c ] ; then
     rm -f $GIT_DIR/$c
@@ -137,7 +140,11 @@ for key in ${SECRETS_FILES} ; do
       break
     fi
   done
-  if $IGNORE ; then continue ; fi
+  if $IGNORE ; then
+    rm -f ${GIT_DIR}/${s}
+    rm -f ${GIT_DIR}/${s}.jenkins-backup-*
+    continue
+  fi
   if [ -e ${GIT_DIR}/${s} ] ; then key=${GIT_DIR}/${s} ; fi
   if [ ! -e $key ] ; then
     rm -f ${GIT_DIR}/${s}.jenkins-backup-*
