@@ -132,7 +132,7 @@ for key in ${SECRETS_FILES} ; do
   rm -f ${GIT_DIR}/${s}.chksum $GIT_DIR/${s}.enc
   IGNORE=false
   for is in ${IGNORE_SECRETS} ; do
-    if [ $(echo $s | grep "$is" | wc -l) -eq 1 ] ; then
+    if [ $(echo $key | grep "$is" | wc -l) -eq 1 ] ; then
       IGNORE=true
       break
     fi
