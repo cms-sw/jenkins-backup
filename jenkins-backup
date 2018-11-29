@@ -139,7 +139,10 @@ for key in ${SECRETS_FILES} ; do
   chksum=$(sha256sum -b $key | sed 's| .*||')
   if [ -f $bkey -a -f $ekey ] ; then
     if [ "$chksum" = "$(cat $bkey)" ] ; then
-      if ! $FORCE_ENC ; then continue ; fi
+      if ! $FORCE_ENC ; then
+        if [ -f ${GIT_DIR}/${s} ] ; then rm -f ${GIT_DIR}/${s} ; fi
+        continue
+      fi
     fi
   fi
   echo "$chksum" >  $bkey
