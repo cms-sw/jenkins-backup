@@ -7,6 +7,7 @@ BACK_REPO=""
 JOBS_EXCLUDE_DIRS=""
 JOBS_INCLUDE_DIRS=""
 LOCALCLI_KEY=${HOME}/.ssh/id_dsa
+PROXY_SERVER=$(hostname -f)
 while [[ $# -gt 0 ]] ; do
   opt=$1; shift
   case $opt in
@@ -18,7 +19,8 @@ while [[ $# -gt 0 ]] ; do
     -r|--repository) BACK_REPO=$1; shift ;;
     -x|--exclude)    JOBS_EXCLUDE_DIRS=$1; shift;;
     -i|--include)    JOBS_INCLUDE_DIRS=$1; shift;;
-    -k|--key)        LOCALCLI_KEY==$1; shift;;
+    -k|--key)        LOCALCLI_KEY=$1; shift;;
+    -P|--proxy)      PROXY_SERVER=$1; shift;;
   esac
 done
 if [ "X${BACK_REPO}" = "X" ] ; then
@@ -152,6 +154,10 @@ find ${JENKINS_HOME}/jobs -follow -mindepth 2 -maxdepth 2 -name 'config.xml' -ty
 
 for k in LOCAL_JENKINS_DSA_KEY LOCAL_JENKINS_URL JENKINS_PREFIX ; do
   sed -i "/>$k</{n;s/>[^>]*</>@$k@</}" $GIT_DIR/config.xml
+done
+
+for f in $(grep "${PROXY_SERVER}" ${GIT_DIR}/*.xml | sed 's|.xml:.*|.xml|' | sort | uniq) do
+  sed -i -e "s|${PROXY_SERVER}/${jenkins_prefix}|@PROXY_SERVER@|" $f
 done
 
 if $PUSH_CHG ; then
