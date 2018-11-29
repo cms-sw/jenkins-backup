@@ -156,7 +156,7 @@ for k in LOCAL_JENKINS_DSA_KEY LOCAL_JENKINS_URL JENKINS_PREFIX ; do
   sed -i "/>$k</{n;s/>[^>]*</>@$k@</}" $GIT_DIR/config.xml
 done
 
-for f in $(grep "${JENKINS_URL}" ${GIT_DIR}/*.xml | sed 's|.xml:.*|.xml|' | sort | uniq) do
+for f in $(grep "${JENKINS_URL}" ${GIT_DIR}/*.xml | sed 's|.xml:.*|.xml|' | sort | uniq) ; do
   sed -i -e "s|${JENKINS_URL}|@JENKINS_URL@|" $f
 done
 
