@@ -7,6 +7,7 @@ BACK_REPO=""
 JOBS_EXCLUDE_DIRS=""
 JOBS_INCLUDE_DIRS=""
 LOCALCLI_KEY=${HOME}/.ssh/id_dsa
+IGNORE_SECRETS="/cmssdt-es-secret /github_hook_secret_cmsbot"
 while [[ $# -gt 0 ]] ; do
   opt=$1; shift
   case $opt in
@@ -20,6 +21,7 @@ while [[ $# -gt 0 ]] ; do
     -i|--include)    JOBS_INCLUDE_DIRS=$1; shift;;
     -k|--key)        LOCALCLI_KEY=$1; shift;;
     -u|--jenkins-url)JENKINS_URL=$1; shift;;
+    -S|--ignore-secrets) IGNORE_SECRETS=$1; shift;;
   esac
 done
 if [ "X${BACK_REPO}" = "X" ] ; then
@@ -127,8 +129,16 @@ SECRETS_FILES="${SECRETS_FILES} $(find $JENKINS_HOME/secrets -type f | grep -v '
 
 for key in ${SECRETS_FILES} ; do
   s=$(echo $key | sed "s|$JENKINS_HOME/||")
-  if [ -e ${GIT_DIR}/${s} ] ; then key=${GIT_DIR}/${s} ; fi
   rm -f ${GIT_DIR}/${s}.chksum $GIT_DIR/${s}.enc
+  IGNORE=false
+  for is in ${IGNORE_SECRETS} ; do
+    if [ $(echo $s | grep "$is" | wc -l) -eq 1 ] ; then
+      IGNORE=true
+      break
+    fi
+  done
+  if $IGNORE ; then continue ; fi
+  if [ -e ${GIT_DIR}/${s} ] ; then key=${GIT_DIR}/${s} ; fi
   if [ ! -e $key ] ; then
     rm -f ${GIT_DIR}/${s}.jenkins-backup-*
     continue
