@@ -129,7 +129,7 @@ SECRETS_FILES="$JENKINS_HOME/secret.key $JENKINS_HOME/secret.key.not-so-secret"
 SECRETS_FILES="${SECRETS_FILES} $(grep '>{[^}]*}<' $JENKINS_HOME/*.xml | sed 's|\.xml:.*|.xml|' | sort | uniq)"
 SECRETS_FILES="${SECRETS_FILES} $(grep '<token>' $JENKINS_HOME/*.xml | sed 's|\.xml:.*|.xml|' | sort | uniq)"
 SECRETS_FILES="${SECRETS_FILES} $(find $JENKINS_HOME/secrets -type f | grep -v '\.conf$')"
-SECRETS_FILES="${SECRETS_FILES} $(find $JENKINS_HOME/users -name '*.xml' -type f)"
+SECRETS_FILES="${SECRETS_FILES} $(find $JENKINS_HOME/users/ -name '*.xml' -type f)"
 
 for key in ${SECRETS_FILES} ; do
   s=$(echo $key | sed "s|$JENKINS_HOME/||")
