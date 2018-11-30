@@ -71,7 +71,7 @@ ${script_dir}/install-plugins.sh $GIT_DIR/pluginslist $GIT_DIR/plugins.filter
 
 rsync -av --delete ${JENKINS_HOME}/plugin-ref/plugins/ ${JENKINS_HOME}/plugins/
 for xml in $(ls $GIT_DIR/*.xml) ; do cp -f $xml $JENKINS_HOME/ ; done
-for dir in labels users nodes log jobs userContent ; do
+for dir in labels nodes log jobs userContent ; do
   mkdir -p ${JENKINS_HOME}/${dir}
   rsync -av $GIT_DIR/${dir}/ ${JENKINS_HOME}/${dir}/
 done
@@ -80,6 +80,8 @@ find ${JENKINS_HOME}/jobs -follow -mindepth 2 -maxdepth 2 -name 'config.xml' -ty
 
 for s in $(find $GIT_DIR -name '*.jenkins-backup-enc' -type f | grep -v '.xml.jenkins-backup-enc' | sed "s|^${GIT_DIR}/||;s|.jenkins-backup-enc$||") ; do
   rm -f $JENKINS_HOME/$s
+  dir=$(dirname $JENKINS_HOME/$s)
+  if [ ! -e $dir ] ; then mkdir -p $dir ; fi
   openssl enc -d -md sha256 -a -base64 -aes-256-cbc -in $GIT_DIR/${s}.jenkins-backup-enc -out $JENKINS_HOME/$s -pass file:$LOCALCLI_KEY
   chmod 0400 $JENKINS_HOME/$s
 done
