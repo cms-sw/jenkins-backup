@@ -192,7 +192,7 @@ if $PUSH_CHG ; then
   #Force Commit every $FORCE_PUSH_TIME sec
   if ! ${FORCE_PUSH} ; then
     let DIFF=$(date +%s)-${LAST_COMMIT_TIME} || true
-    if [ $DIFF -gt $FORCE_PUSH_TIME ] ; then $FORCE_PUSH=true ; fi
+    if [ $DIFF -gt $FORCE_PUSH_TIME ] ; then FORCE_PUSH=true ; fi
   fi
   if ${FORCE_PUSH} || [ $(git diff --name-only HEAD origin/$GIT_BRANCH | grep -v 'queue.xml$' | grep -v '/nextBuildNumber$' | grep -v 'AsyncResourceDisposer.xml$'  | wc -l) -gt 0 ] ; then
     echo ">> Files changed"
