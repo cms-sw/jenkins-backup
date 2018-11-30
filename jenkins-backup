@@ -70,7 +70,7 @@ else
   git push origin ${GIT_BRANCH}
 fi
 
-for dir in labels users nodes log; do
+for dir in labels nodes log; do
   if [ ! -e $JENKINS_HOME/$dir ] ; then
      rm -rf $GIT_DIR/$dir
      continue
@@ -129,6 +129,7 @@ SECRETS_FILES="$JENKINS_HOME/secret.key $JENKINS_HOME/secret.key.not-so-secret"
 SECRETS_FILES="${SECRETS_FILES} $(grep '>{[^}]*}<' $JENKINS_HOME/*.xml | sed 's|\.xml:.*|.xml|' | sort | uniq)"
 SECRETS_FILES="${SECRETS_FILES} $(grep '<token>' $JENKINS_HOME/*.xml | sed 's|\.xml:.*|.xml|' | sort | uniq)"
 SECRETS_FILES="${SECRETS_FILES} $(find $JENKINS_HOME/secrets -type f | grep -v '\.conf$')"
+SECRETS_FILES="${SECRETS_FILES} $(find $JENKINS_HOME/users -name '*.xml' -type f)"
 
 for key in ${SECRETS_FILES} ; do
   s=$(echo $key | sed "s|$JENKINS_HOME/||")
