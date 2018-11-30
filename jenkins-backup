@@ -7,6 +7,7 @@ BACK_REPO=""
 JOBS_EXCLUDE_DIRS=""
 JOBS_INCLUDE_DIRS=""
 LOCALCLI_KEY=${HOME}/.ssh/id_dsa
+FORCE_TIME=3600
 IGNORE_SECRETS="/cmssdt-es-secret /github_hook_secret_cmsbot"
 while [[ $# -gt 0 ]] ; do
   opt=$1; shift
@@ -22,6 +23,7 @@ while [[ $# -gt 0 ]] ; do
     -k|--key)        LOCALCLI_KEY=$1; shift;;
     -u|--jenkins-url)JENKINS_URL=$1; shift;;
     -S|--ignore-secrets) IGNORE_SECRETS=$1; shift;;
+    -T|--force-time) FORCE_TIME=$1; shift;;
   esac
 done
 if [ "X${BACK_REPO}" = "X" ] ; then
@@ -186,10 +188,10 @@ find ${JENKINS_HOME}/jobs -follow -mindepth 2 -maxdepth 2 -name 'config.xml' -ty
 if $PUSH_CHG ; then
   git add . || true
   git commit -a -m "Updated Jenkins configuration ${GIT_BRANCH}" || true
-  #Force Commit every 1 hour
+  #Force Commit every $FORCE_TIME sec
   if ! ${FORCE_PUSH} ; then
     let DIFF=$(date +%s)-$(git log -1 --date=short --pretty=format:%ct)
-    if [ $DIFF -gt 3600 ] ; then $FORCE_PUSH=true ; fi
+    if [ $DIFF -gt $FORCE_TIME ] ; then $FORCE_PUSH=true ; fi
   fi
   if ${FORCE_PUSH} || [ $(git diff --name-only HEAD origin/$GIT_BRANCH | grep -v 'queue.xml$' | grep -v '/nextBuildNumber$' | grep -v 'AsyncResourceDisposer.xml$'  | wc -l) -gt 0 ] ; then
     echo ">> Files changed"
