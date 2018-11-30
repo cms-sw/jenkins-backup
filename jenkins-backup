@@ -71,6 +71,7 @@ else
   git commit -a -m "Init new branch ${GIT_BRANCH}"
   git push origin ${GIT_BRANCH}
 fi
+LAST_COMMIT_TIME=$(git log -1 --date=short --pretty=format:%ct)
 
 for dir in labels nodes log; do
   if [ ! -e $JENKINS_HOME/$dir ] ; then
@@ -190,7 +191,7 @@ if $PUSH_CHG ; then
   git commit -a -m "Updated Jenkins configuration ${GIT_BRANCH}" || true
   #Force Commit every $FORCE_PUSH_TIME sec
   if ! ${FORCE_PUSH} ; then
-    let DIFF=$(date +%s)-$(git log -1 --date=short --pretty=format:%ct) || true
+    let DIFF=$(date +%s)-${LAST_COMMIT_TIME} || true
     if [ $DIFF -gt $FORCE_PUSH_TIME ] ; then $FORCE_PUSH=true ; fi
   fi
   if ${FORCE_PUSH} || [ $(git diff --name-only HEAD origin/$GIT_BRANCH | grep -v 'queue.xml$' | grep -v '/nextBuildNumber$' | grep -v 'AsyncResourceDisposer.xml$'  | wc -l) -gt 0 ] ; then
