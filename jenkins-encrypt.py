@@ -26,7 +26,7 @@ def process(opts, infiles):
   if not opts.decrypt:
     search = []
     for v in opts.values:   search.append(re.compile(v, re.I))
-    for k in opts.keywords: search.append(re.compile('^(\s*<%s>)([^<]+)(</%s>\s*)' % (k,k),re.I))
+    for k in opts.keywords: search.append(re.compile('^(\s*<%s>)([^<]*)(</%s>\s*)' % (k,k),re.I))
     opts.keywords = search
   cwd = abspath(getcwd())+"/"
   for infile in [abspath(f) for f in infiles]:
@@ -117,12 +117,13 @@ def do_dec(opts, infile, cdir):
   return 1
 
 if __name__ == "__main__":
+  default_keys = ['passwordhash','password','apiToken', 'token','passphrase', 'proxyPassword']
   from optparse import OptionParser
   parser = OptionParser(usage="%prog <infile>")
   parser.add_option("-f", dest="force",   action="store_true", help="Force encrypt.", default=False)
   parser.add_option("-d", dest="decrypt",   action="store_true", help="Decrypt the input file.", default=False)
   parser.add_option("-p", dest="partial",   action="store_true", help="Do the partial encryption/decryption. Default is full", default=False)
-  parser.add_option("-k", dest="keywords",  help="XML keywords to encrypt.", action='append', default=['passwordhash','password','apiToken', 'token','passphrase'])
+  parser.add_option("-k", dest="keywords",  help="XML keywords to encrypt.", action='append', default=default_keys)
   parser.add_option("-v", dest="values",    help="XML values to encrypt.", action='append', default=['^(.*<.+?>)({[^}]+})(<.+>\s*)'])
   parser.add_option("-P", dest="passfile",  help="Passfile to use to encrypt/decrypt data.", type=str, default='~/.ssh/id_dsa')
   parser.add_option("-c", dest="cache_dir", help="Jenkins backup cache directory", type=str, default='.jenkins-backup')
@@ -132,4 +133,6 @@ if __name__ == "__main__":
   opts.passfile = expanduser(opts.passfile)
   if not exists (opts.passfile): parser.error("No such file: %s" % opts.passfile)
   if not exists (opts.cache_dir): cmd('mkdir -p %s' % opts.cache_dir)
+  for k in default_keys:
+    if not k in opts.keywords: opts.keywords.append(k)
   process(opts, args)

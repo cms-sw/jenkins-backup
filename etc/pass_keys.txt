@@ -6,3 +6,4 @@
 <tokenGenerationOnCreationEnabled>
 <creationOfLegacyTokenEnabled>
 <name>
+<variable>
