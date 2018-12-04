@@ -7,3 +7,4 @@
 <creationOfLegacyTokenEnabled>
 <name>
 <variable>
+<role>
