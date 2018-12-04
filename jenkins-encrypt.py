@@ -120,7 +120,7 @@ if __name__ == "__main__":
   default_keys = ['passwordhash','password','apiToken', 'token','passphrase', 'proxyPassword']
   from optparse import OptionParser
   parser = OptionParser(usage="%prog <infile>")
-  parser.add_option("-f", dest="force",   action="store_true", help="Force encrypt.", default=False)
+  parser.add_option("-f", dest="force",     action="store_true", help="Force encrypt.", default=False)
   parser.add_option("-d", dest="decrypt",   action="store_true", help="Decrypt the input file.", default=False)
   parser.add_option("-p", dest="partial",   action="store_true", help="Do the partial encryption/decryption. Default is full", default=False)
   parser.add_option("-k", dest="keywords",  help="XML keywords to encrypt.", action='append', default=default_keys)

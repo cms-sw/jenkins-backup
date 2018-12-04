@@ -9,10 +9,12 @@ INCLUDE_FILES="secret.key secret.key.not-so-secret"
 INCLUDE_DIRS="labels nodes log users userContent email-templates secrets"
 LOCALCLI_KEY="${HOME}/.ssh/id_dsa"
 FORCE_PUSH_TIME=3600
+FORCE_ENCRYPT=""
 EXCLUDE_FILES="secrets/cmssdt-es-secret secrets/github_hook_secret_cmsbot"
 while [[ $# -gt 0 ]] ; do
   opt=$1; shift
   case $opt in
+    -e|--force-encrypt)FORCE_ENCRYPT="-f";;
     -p|--push)         PUSH_CHG=true;;
     -f|--force)        FORCE_PUSH=true;;
     -F|--push-time)    FORCE_PUSH_TIME=$1; shift;;
@@ -167,12 +169,12 @@ done
 rm -f files.conf
 find $GIT_DIR -name '*' -type f | sed "s|$GIT_DIR/||" | grep -v '^\.jenkins-backup/\|^\.git/\|/nextBuildNumber$' | grep -v '\.md$\|\.txt$\|\.conf$' > files.conf
 grep '\.xml$' files.conf | while IFS= read -r file; do
-  ${script_dir}/jenkins-encrypt.py -p -P $LOCALCLI_KEY "${file}"
+  ${script_dir}/jenkins-encrypt.py ${FORCE_ENCRYPT} -p -P $LOCALCLI_KEY "${file}"
 done
 
 #Encrypt non-xml files
 grep -v '\.xml$' files.conf | while IFS= read -r file; do
-  ${script_dir}/jenkins-encrypt.py -P $LOCALCLI_KEY "${file}"
+  ${script_dir}/jenkins-encrypt.py ${FORCE_ENCRYPT} -P $LOCALCLI_KEY "${file}"
 done
 
 rm -f files.conf jenkins-backup-invalid-files.txt
