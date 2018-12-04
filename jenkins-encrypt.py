@@ -53,7 +53,7 @@ def do_enc(opts, infile, cdir):
   cmd("rm -rf '%s'" % cdir)
   if not opts.partial:
     convert_file('-e', opts.passfile, infile, efile)
-    cmd("echo '%s' > %s" % (ncksum, sfile))
+    cmd("echo '%s' > '%s'" % (ncksum, sfile))
     return 1
   mnum=0
   data=[]
@@ -81,7 +81,7 @@ def do_enc(opts, infile, cdir):
       c+=1
       for x in d.split('\n'): xfile.write('%s:%s\n' % (c,x))
     xfile.close()
-    cmd("echo '%s' > %s" % (ncksum, sfile))
+    cmd("echo '%s' > '%s'" % (ncksum, sfile))
   return mnum
 
 def do_dec(opts, infile, cdir):
