@@ -122,7 +122,7 @@ if __name__ == "__main__":
   parser.add_option("-f", dest="force",   action="store_true", help="Force encrypt.", default=False)
   parser.add_option("-d", dest="decrypt",   action="store_true", help="Decrypt the input file.", default=False)
   parser.add_option("-p", dest="partial",   action="store_true", help="Do the partial encryption/decryption. Default is full", default=False)
-  parser.add_option("-k", dest="keywords",  help="XML keywords to encrypt.", action='append', default=['passwordhash','password','apiToken', 'token'])
+  parser.add_option("-k", dest="keywords",  help="XML keywords to encrypt.", action='append', default=['passwordhash','password','apiToken', 'token','passphrase'])
   parser.add_option("-v", dest="values",    help="XML values to encrypt.", action='append', default=['^(.*<.+?>)({[^}]+})(<.+>\s*)'])
   parser.add_option("-P", dest="passfile",  help="Passfile to use to encrypt/decrypt data.", type=str, default='~/.ssh/id_dsa')
   parser.add_option("-c", dest="cache_dir", help="Jenkins backup cache directory", type=str, default='.jenkins-backup')

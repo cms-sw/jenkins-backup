@@ -185,7 +185,7 @@ grep -Ri 'token\|pass\|secret' --exclude-dir=.git --include='*.xml' --include='c
   echo $data
   XFILES=true
 done
-if  $XFILES ; then exit 1 ;fi
+if $XFILES ; then exit 1 ;fi
 
 if $PUSH_CHG ; then
   git add . || true
