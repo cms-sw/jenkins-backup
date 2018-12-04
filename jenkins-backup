@@ -105,18 +105,15 @@ for dir in ${INCLUDE_DIRS}; do
 done
 
 #Copy Jobs
-mkdir -p $GIT_DIR/jobs
-JOBS_EXCLUDE_FILTER="--exclude='*/disk-usage.xml'"
-for exl in ${JOBS_EXCLUDE_DIRS} '.git' 'builds' 'lastStable' 'lastSuccessful' '.ssh' ; do
-  if [ "X${exl}" = "X" ] ; then continue ; fi
-  JOBS_EXCLUDE_FILTER="${JOBS_EXCLUDE_FILTER} --exclude='**/${exl}' --exclude='**/${exl}/*'"
+rsync -avm --delete --delete-excluded --include='*/' --include='config.xml' --exclude='*' $JENKINS_HOME/jobs/ $GIT_DIR/jobs/
+
+#Create one file for nextBuildNumbers
+rm -f nextBuildNumber ; touch nextBuildNumber
+find $JENKINS_HOME/jobs/ -name 'nextBuildNumber' -type f | sort | while IFS= read -r file ; do
+  j=$(echo $file | sed "s|$JENKINS_HOME/jobs/||;s|/nextBuildNumber||")
+  n=$(head -1 "$file")
+  echo "$j=$n" >> nextBuildNumber
 done
-JOBS_INCLUDE_FILTER=""
-for inc in ${JOBS_INCLUDE_DIRS} 'config.xml' 'nextBuildNumber' ; do
-  if [ "X${inc}" = "X" ] ; then continue ; fi
-  JOBS_INCLUDE_FILTER="${JOBS_INCLUDE_FILTER} --include='**/${inc}'"
-done
-eval rsync -av --delete --delete-excluded ${JOBS_INCLUDE_FILTER} ${JOBS_EXCLUDE_FILTER} $JENKINS_HOME/jobs/ $GIT_DIR/jobs/
 
 ############################
 # Delete un-needed stuff
