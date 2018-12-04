@@ -70,7 +70,7 @@ else
   git add -A
   git commit -a -m "Init new branch ${GIT_BRANCH}"
   if $PUSH_CHG ; then git push origin $GIT_BRANCH ; fi
-fii
+fi
 LAST_COMMIT_TIME=$(git log -1 --date=short --pretty=format:%ct)
 
 #################################
