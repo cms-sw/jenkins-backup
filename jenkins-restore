@@ -1,29 +1,28 @@
 #!/bin/bash -ex
 REPO=""
 DEFAULT_BRANCH=master
-FULL_VERSION=false
 LOCALCLI_KEY=${HOME}/.ssh/id_dsa
+BACKUP_REF_DIR="$(/bin/pwd)/plugin-ref"
 while [[ $# -gt 0 ]] ; do
   opt=$1; shift
   case $opt in
-    -v|--version)    FULL_VERSION=true;;
     -h|--home)       JENKINS_HOME=$1; shift ;;
     -r|--repository) REPO=$1; shift ;;
     -b|--branch)     DEFAULT_BRANCH=$1; shift;;
     -k|--key)        LOCALCLI_KEY=$1; shift;;
     -K|--kinit)      KINIT=$1; shift ;;
     -u|--jenkins-url)JENKINS_URL=$1; shift;;
+    -w|--workspace)  BACKUP_REF_DIR=$1; shift;;
   esac
 done
 if [ "X$JENKINS_HOME" = "X" ] ; then JENKINS_HOME=/var/lib/jenkins ; fi
 if [ "X${REPO}" = "X" ] ; then
-  echo "ERROR: Missing backup repository. Usage $0 -r https://github.com/user/repo [-v|--version] [-b|--branch default-git-branch]"
+  echo "ERROR: Missing backup repository. Usage $0 -r https://github.com/user/repo [-b|--branch default-git-branch]"
   exit 1
 fi
-
 JENKINS_PORT=$(pgrep -x -a  -f ".*httpPort=.*" | tail -1 | tr ' ' '\n' | grep httpPort | sed 's|.*=||')
 LOCAL_JENKINS_URL=http://localhost:${JENKINS_PORT}
-export JENKINS_PLUGIN_REF="${JENKINS_HOME}/plugin-ref/plugins"
+export JENKINS_PLUGIN_REF="${BACKUP_REF_DIR}/plugins"
 script_dir=$(dirname $0)
 jenkins_prefix=""
 if [ -f ${JENKINS_HOME}/jenkins_prefix ] ; then
@@ -39,78 +38,79 @@ if [ "X$branch" = "X" ] ; then
   echo "Error: Unable to find jenkins version"
   exit 1
 fi
-if ! $FULL_VERSION ; then branch=$(echo $branch | cut -d. -f1,2 | sed 's|.$||;s|\.$|\.0|') ; fi
 GIT_BRANCH=${jenkins_prefix}${branch}
-GIT_DIR=${JENKINS_HOME}/plugin-ref/${jenkins_prefix}${GIT_BRANCH}
+GIT_DIR=${BACKUP_REF_DIR}/${GIT_BRANCH}
 KR5_FILE=""
+mkdir -p "${BACKUP_REF_DIR}"
 if [ "X$KINIT" != "X" ] ; then
-  KR5_FILE=${JENKINS_HOME}/plugin-ref/krb5cc_$(whoami)
+  KR5_FILE=${BACKUP_REF_DIR}/krb5cc_$(whoami)
   export KRB5CCNAME=FILE:${KR5_FILE}
   kinit $(echo $KINIT | cut -d: -f1) -k -t $(echo $KINIT | cut -d: -f2)
 fi
-if [ ! -d $GIT_DIR ] ; then git clone $REPO $GIT_DIR ; fi
+rm -rf $GIT_DIR
+git clone $REPO $GIT_DIR
 cd $GIT_DIR
 if [ $(git branch -a | grep "remotes/origin/${GIT_BRANCH}$" | wc -l) -eq 0 ] ; then GIT_BRANCH=${DEFAULT_BRANCH} ; fi
 git checkout $GIT_BRANCH
 git clean -fdx
 git checkout -q --force $GIT_BRANCH
 git reset --hard origin/$GIT_BRANCH
-for s in $(find $GIT_DIR -name '*.xml.jenkins-backup-enc' -type f | sed 's|.jenkins-backup-enc$||') ; do
-  openssl enc -d -md sha256 -a -base64 -aes-256-cbc -in ${s}.jenkins-backup-enc -out $s -pass file:$LOCALCLI_KEY
+if [ "X$KR5_FILE" != "X" ] ; then rm -f $KR5_FILE ; fi
+
+#Decrypt jenkins config files
+find .jenkins-backup -name 'contents' -type f | sed 's|/contents$||' | while IFS= read -r file; do
+  ${script_dir}/jenkins-encrypt.py -d -P $LOCALCLI_KEY "${file}"
 done
 
-find $GIT_DIR -name '*.xml' -type f | xargs grep ' plugin=' | sed 's|.* plugin="||;s|@.*||' | grep -v '^pipeline-' > $GIT_DIR/plugin.used
-echo 'matrix-auth' >> $GIT_DIR/plugin.used
-rm -rf $GIT_DIR/plugins.filter
-touch $GIT_DIR/plugins.filter
-for p in $(cat $GIT_DIR/plugin.used | sort -u) ; do
-  grep "^$p:" $GIT_DIR/pluginslist >> $GIT_DIR/plugins.filter || true
-done
-rm -rf ${JENKINS_HOME}/plugin-ref/plugins/*.lock
-${script_dir}/install-plugins.sh $GIT_DIR/pluginslist $GIT_DIR/plugins.filter
+#Disabled jobs
+#find ${GIT_DIR}/jobs -mindepth 2 -maxdepth 2 -name 'config.xml' -type f |  xargs -i sed -i -e 's|<disabled>false|<disabled>true|' '{}'
 
-rsync -av --delete ${JENKINS_HOME}/plugin-ref/plugins/ ${JENKINS_HOME}/plugins/
-for xml in $(ls $GIT_DIR/*.xml) ; do cp -f $xml $JENKINS_HOME/ ; done
-for dir in labels users nodes log jobs userContent ; do
-  mkdir -p ${JENKINS_HOME}/${dir}
-  rsync -av $GIT_DIR/${dir}/ ${JENKINS_HOME}/${dir}/
-done
-
-find ${JENKINS_HOME}/jobs -follow -mindepth 2 -maxdepth 2 -name 'config.xml' -type f |  xargs -i sed -i -e 's|<disabled>false|<disabled>true|' '{}'
-
-for s in $(find $GIT_DIR -name '*.jenkins-backup-enc' -type f | grep -v '.xml.jenkins-backup-enc' | sed "s|^${GIT_DIR}/||;s|.jenkins-backup-enc$||") ; do
-  rm -f $JENKINS_HOME/$s
-  dir=$(dirname $JENKINS_HOME/$s)
-  if [ ! -e $dir ] ; then mkdir -p $dir ; fi
-  openssl enc -d -md sha256 -a -base64 -aes-256-cbc -in $GIT_DIR/${s}.jenkins-backup-enc -out $JENKINS_HOME/$s -pass file:$LOCALCLI_KEY
-  chmod 0400 $JENKINS_HOME/$s
-done
-
-for f in $(grep "@JENKINS_URL@" ${JENKINS_HOME}/*.xml | sed 's|.xml:.*|.xml|' | sort | uniq) ; do
+#Relocate jenkins parameters
+for f in $(grep "@JENKINS_URL@" ${GIT_DIR}/*.xml | sed 's|.xml:.*|.xml|' | sort | uniq) ; do
   sed -i -e "s|@JENKINS_URL@|${JENKINS_URL}|" $f
 done
-
-MASTER_EXEC=$(getconf _NPROCESSORS_ONLN)
-if [ $MASTER_EXEC -lt 2 ] ; then MASTER_EXEC=2; fi
-sed -i -e "s|<numExecutors>[0-9]*</numExecutors>|<numExecutors>${MASTER_EXEC}</numExecutors>|" $JENKINS_HOME/config.xml
 for k in LOCAL_JENKINS_DSA_KEY LOCAL_JENKINS_URL JENKINS_PREFIX ; do
-  if [ $(grep "@$k@" $JENKINS_HOME/config.xml | wc -l) -gt 0 ] ; then
+  if [ $(grep "@$k@" ${GIT_DIR}/config.xml | wc -l) -gt 0 ] ; then
     v=""
     case $k in
       JENKINS_PREFIX)        v="${jenkins_prefix}" ;;
       LOCAL_JENKINS_URL)     v="${LOCAL_JENKINS_URL}/${jenkins_prefix}" ;;
       LOCAL_JENKINS_DSA_KEY) v="${LOCALCLI_KEY}" ;;
     esac
-    sed -i -e "s|@$k@|${v}|" $JENKINS_HOME/config.xml
+    sed -i -e "s|@$k@|${v}|" ${GIT_DIR}/config.xml
   fi
 done
 
-if [ "X${jenkins_prefix}" != "X" ] ; then
-  sed -i -e "s|:${JENKINS_PORT}/jenkins|:${JENKINS_PORT}/${jenkins_prefix}|" $JENKINS_HOME/config.xml
-  for xml in hudson.tasks.Mailer.xml jenkins.model.JenkinsLocationConfiguration.xml jenkins.plugins.slack.SlackNotifier.xml ; do
-    if [ -e $JENKINS_HOME/$xml ] ; then
-      sed -i -e "s|cmssdt.cern.ch/.*jenkins|cmssdt.cern.ch/${jenkins_prefix}|" $JENKINS_HOME/$xml
-    fi
-  done
-fi
-if [ "X$KR5_FILE" != "X" ] ; then rm -f $KR5_FILE ; fi
+MASTER_EXEC=$(getconf _NPROCESSORS_ONLN)
+if [ $MASTER_EXEC -lt 2 ] ; then MASTER_EXEC=2; fi
+sed -i -e "s|<numExecutors>[0-9]*</numExecutors>|<numExecutors>${MASTER_EXEC}</numExecutors>|" ${GIT_DIR}/config.xml
+
+#Find jenkins plugins in use
+rm -f $GIT_DIR/plugins-used.conf ; touch $GIT_DIR/plugins-used.conf
+find $GIT_DIR -name '*.xml' -type f | while IFS= read -r file; do
+  (grep ' plugin=' "${file}" | sed 's|.* plugin="||;s|@.*||' | grep -v '^pipeline-' || true) >> $GIT_DIR/plugins-used.conf
+done
+
+#Force install matrix-auth
+echo 'matrix-auth' >> $GIT_DIR/plugins-used.conf
+
+rm -rf $GIT_DIR/plugins-filter.conf && touch $GIT_DIR/plugins-filter.conf
+for p in $(cat $GIT_DIR/plugins-used.conf | sort -u) ; do
+  grep "^$p:" $GIT_DIR/pluginslist.conf >> $GIT_DIR/plugins-filter.conf || true
+done
+rm -rf ${JENKINS_PLUGIN_REF}/*.lock
+${script_dir}/install-plugins.sh $GIT_DIR/pluginslist.conf $GIT_DIR/plugins-filter.conf
+rm -rf ${JENKINS_PLUGIN_REF}/tmp ${JENKINS_PLUGIN_REF}/deps-plugins.txt ${JENKINS_PLUGIN_REF}/deps-plugins.txt.uniq
+rm -f $GIT_DIR/pluginslist.conf $GIT_DIR/plugins-filter.conf $GIT_DIR/plugins-used.conf
+
+#Sync jenkins configuration back to jenkins home
+rsync -av --delete ${JENKINS_PLUGIN_REF}/ ${JENKINS_HOME}/plugins/
+
+find . -maxdepth 1 -mindepth 1 -name '*' | while IFS= read -r file; do
+  [ $(echo "${file}" | grep '/\.jenkins-backup$\|/\.git$' | wc -l) -gt 0 ] && continue
+  if [ -d "${file}" ] ; then
+    rsync -av "${file}/" "${JENKINS_HOME}/${file}/"
+  else
+    cp -f "${file}" "${JENKINS_HOME}/${file}"
+  fi
+done

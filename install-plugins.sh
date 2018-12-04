@@ -1,7 +1,7 @@
 #!/bin/bash -eu
 set -o pipefail
 
-REF_DIR=${JENKINS_PLUGIN_REF:-/var/lib/jenkins/plugin-ref/plugins}
+export REF_DIR=${JENKINS_PLUGIN_REF:-/var/lib/jenkins/plugin-ref/plugins}
 FAILED="$REF_DIR/failed-plugins.txt"
 DEPS="$REF_DIR/deps-plugins.txt"
 JENKINS_UC="https://updates.jenkins.io"

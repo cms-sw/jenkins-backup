@@ -49,7 +49,7 @@ jenkinsMajorMinorVersion() {
 bundledPlugins() {
     if [ -f $JENKINS_WAR ]
     then
-        TEMP_PLUGIN_DIR=/tmp/plugintemp.$$
+        TEMP_PLUGIN_DIR=${REF_DIR}/tmp/plugintemp.$$
         for i in $(jar tf $JENKINS_WAR | grep -E '[^detached-]plugins.*\..pi' | sort)
         do
             rm -fr $TEMP_PLUGIN_DIR
@@ -65,4 +65,3 @@ bundledPlugins() {
         exit 1
     fi
 }
-

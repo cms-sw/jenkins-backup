@@ -6,7 +6,6 @@ from hashlib import md5
 from commands import getstatusoutput as run_cmd
 
 def cmd(cmd2run):
-  #print cmd2run
   e, o = run_cmd(cmd2run)
   if e:
     print o
