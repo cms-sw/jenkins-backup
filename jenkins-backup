@@ -107,14 +107,6 @@ done
 #Copy Jobs
 rsync -avm --delete --delete-excluded --exclude='**/builds/' --exclude='**/workspace/' --include='*/' --include='config.xml' --exclude='*' $JENKINS_HOME/jobs/ $GIT_DIR/jobs/
 
-#Create one file for nextBuildNumbers
-rm -f nextBuildNumber ; touch nextBuildNumber
-find $JENKINS_HOME/jobs/ -name 'nextBuildNumber' -type f | sort | while IFS= read -r file ; do
-  j=$(echo $file | sed "s|$JENKINS_HOME/jobs/||;s|/nextBuildNumber||")
-  n=$(head -1 "$file")
-  echo "$j=$n" >> nextBuildNumber
-done
-
 ############################
 # Delete un-needed stuff
 ############################
@@ -131,6 +123,13 @@ find . -maxdepth 1 -mindepth 1 -name '*' -print0  | while IFS= read -r -d '' fil
   rm -rf "${file}"
 done
 
+#Create one file for nextBuildNumbers
+rm -f $GIT_DIR/nextBuildNumber; touch $GIT_DIR/nextBuildNumber
+find $JENKINS_HOME/jobs/ -name 'nextBuildNumber' -type f | sort | while IFS= read -r file ; do
+  j=$(echo $file | sed "s|$JENKINS_HOME/jobs/||;s|/nextBuildNumber||")
+  n=$(head -1 "$file")
+  echo "$j=$n" >> $GIT_DIR/nextBuildNumber
+done
 ###################################
 #Make some parameters relocatable
 ###################################
