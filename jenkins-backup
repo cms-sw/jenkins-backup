@@ -1,29 +1,30 @@
-#!/bin/bash -ex
+#!/bin/bash -e
 FORCE_ENC=false
 PUSH_CHG=false
 FORCE_PUSH=false
-FULL_VERSION=false
 BACK_REPO=""
 JOBS_EXCLUDE_DIRS=""
 JOBS_INCLUDE_DIRS=""
-LOCALCLI_KEY=${HOME}/.ssh/id_dsa
+INCLUDE_FILES="secret.key secret.key.not-so-secret"
+INCLUDE_DIRS="labels nodes log users userContent email-templates secrets"
+LOCALCLI_KEY="${HOME}/.ssh/id_dsa"
 FORCE_PUSH_TIME=3600
-IGNORE_SECRETS="/cmssdt-es-secret /github_hook_secret_cmsbot"
+EXCLUDE_FILES="secrets/cmssdt-es-secret secrets/github_hook_secret_cmsbot"
 while [[ $# -gt 0 ]] ; do
   opt=$1; shift
   case $opt in
-    -e|--encrypt)    FORCE_ENC=true;;
-    -p|--push)       PUSH_CHG=true;;
-    -f|--force)      FORCE_PUSH=true;;
-    -v|--version)    FULL_VERSION=true;;
-    -h|--home)       JENKINS_HOME=$1; shift ;;
-    -r|--repository) BACK_REPO=$1; shift ;;
-    -x|--exclude)    JOBS_EXCLUDE_DIRS=$1; shift;;
-    -i|--include)    JOBS_INCLUDE_DIRS=$1; shift;;
-    -k|--key)        LOCALCLI_KEY=$1; shift;;
-    -u|--jenkins-url)JENKINS_URL=$1; shift;;
-    -S|--ignore-secrets) IGNORE_SECRETS=$1; shift;;
-    -F|--force-push-time) FORCE_PUSH_TIME=$1; shift;;
+    -p|--push)         PUSH_CHG=true;;
+    -f|--force)        FORCE_PUSH=true;;
+    -F|--push-time)    FORCE_PUSH_TIME=$1; shift;;
+    -h|--home)         JENKINS_HOME=$1; shift ;;
+    -r|--repository)   BACK_REPO=$1; shift ;;
+    -J|--exclude-jobs) JOBS_EXCLUDE_DIRS=$1; shift;;
+    -j|--include-jobs) JOBS_INCLUDE_DIRS=$1; shift;;
+    -i|--include-files)INCLUDE_FILES="${INCLUDE_FILES} $1"; shift;;
+    -I|--include-dirs) INCLUDE_DIRS="${INCLUDE_DIRS} $1"; shift;;
+    -k|--key)          LOCALCLI_KEY=$1; shift;;
+    -u|--jenkins-url)  JENKINS_URL=$1; shift;;
+    -X|--exclude-files)EXCLUDE_FILES="${IGNORE_FILES} $1" ; shift;;
   esac
 done
 if [ "X${BACK_REPO}" = "X" ] ; then
@@ -52,16 +53,15 @@ if [ "X$branch" = "X" ] ; then
   echo "Error: Unable to find jenkins version"
   exit 1
 fi
-if ! $FULL_VERSION ; then branch=$(echo $branch | cut -d. -f1,2 | sed 's|.$||;s|\.$|\.0|') ; fi
 GIT_BRANCH=${jenkins_prefix}${branch}
-GIT_DIR=${WORKSPACE}/.backup/${GIT_BRANCH}
+GIT_DIR=${WORKSPACE}/backup/${GIT_BRANCH}
 mkdir -p $(dirname $GIT_DIR)
 if [ ! -d $GIT_DIR ] ; then git clone $BACK_REPO $GIT_DIR ; fi
 cd $GIT_DIR
 if [ $(git branch -a | grep remotes/origin/${GIT_BRANCH} | wc -l) -gt 0 ] ; then
-  git checkout ${GIT_BRANCH} || true
   git clean -fdx
   git checkout -q --force $GIT_BRANCH
+  git pull origin $GIT_BRANCH
   git reset --hard origin/$GIT_BRANCH
 else
   git checkout --orphan ${GIT_BRANCH}
@@ -69,32 +69,41 @@ else
   touch README.md
   git add -A
   git commit -a -m "Init new branch ${GIT_BRANCH}"
-  git push origin ${GIT_BRANCH}
-fi
+  if $PUSH_CHG ; then git push origin $GIT_BRANCH ; fi
+fii
 LAST_COMMIT_TIME=$(git log -1 --date=short --pretty=format:%ct)
 
-for dir in labels nodes log; do
-  if [ ! -e $JENKINS_HOME/$dir ] ; then
-     rm -rf $GIT_DIR/$dir
-     continue
-  fi
-  mkdir -p $GIT_DIR/$dir
-  rsync -av --delete --include="*.xml" --delete-excluded --exclude='**/.git' --exclude='**/.git/*' --exclude='**/.ssh' --exclude='**/.ssh/*' $JENKINS_HOME/$dir/ $GIT_DIR/$dir/
+#################################
+#Copy all configuration files
+#################################
+#Copy top level xml files
+find $JENKINS_HOME -maxdepth 1 -mindepth 1 -name '*.xml' -type f -print0  | while IFS= read -r -d '' file; do
+  cp -f "${file}" ${GIT_DIR}/
 done
 
-for dir in userContent ; do
-  if [ ! -e $JENKINS_HOME/$dir ] ; then
-     rm -rf $GIT_DIR/$dir
-     continue
+#Copy any extra non xml files
+for f in ${INCLUDE_FILES} ; do
+  if [ -e "${JENKINS_HOME}/$f" ] ; then
+    d=$(dirname "$f")
+    mkdir -p "$d"
+    cp -rf "${JENKINS_HOME}/$f" "${GIT_DIR}/${d}/"
+  else
+    rm -rf "${GIT_DIR}/$f"
   fi
-  mkdir -p $GIT_DIR/$dir
-  rsync -av --delete --delete-excluded --exclude='**/.git' --exclude='**/.git/*' --exclude='**/.ssh' --exclude='**/.ssh/*' $JENKINS_HOME/$dir/ $GIT_DIR/$dir/
 done
 
-rm -rf $GIT_DIR/scriptler
+#Copy configuration directories
+for dir in ${INCLUDE_DIRS}; do
+  if [ ! -e $JENKINS_HOME/$dir ] ; then
+     rm -rf "${GIT_DIR}/${dir}"
+     continue
+  fi
+  mkdir -p "${GIT_DIR}/${dir}"
+  rsync -av --delete --delete-excluded --exclude='**/.git' --exclude='**/.git/*' --exclude='**/.ssh' --exclude='**/.ssh/*' "${JENKINS_HOME}/${dir}/" "${GIT_DIR}/${dir}/"
+done
 
-mkdir -p $GIT_DIR/jobs $GIT_DIR/secrets
-set +x
+#Copy Jobs
+mkdir -p $GIT_DIR/jobs
 JOBS_EXCLUDE_FILTER="--exclude='*/disk-usage.xml'"
 for exl in ${JOBS_EXCLUDE_DIRS} '.git' 'builds' 'lastStable' 'lastSuccessful' '.ssh' ; do
   if [ "X${exl}" = "X" ] ; then continue ; fi
@@ -105,98 +114,94 @@ for inc in ${JOBS_INCLUDE_DIRS} 'config.xml' 'nextBuildNumber' ; do
   if [ "X${inc}" = "X" ] ; then continue ; fi
   JOBS_INCLUDE_FILTER="${JOBS_INCLUDE_FILTER} --include='**/${inc}'"
 done
-set -x
 eval rsync -av --delete --delete-excluded ${JOBS_INCLUDE_FILTER} ${JOBS_EXCLUDE_FILTER} $JENKINS_HOME/jobs/ $GIT_DIR/jobs/
 
-for xml in $(ls $JENKINS_HOME/*.xml) ; do cp -f $xml $GIT_DIR/ ; done
+############################
+# Delete un-needed stuff
+############################
+#Delete scriptler
+rm -rf $GIT_DIR/scriptler
 
+#Drop 
+for is in ${EXCLUDE_FILES} ; do rm -rf "${GIT_DIR}/${is}" ; done
+
+#Delete top level files which are not in JENKINS_HOME
+find . -maxdepth 1 -mindepth 1 -name '*' -print0  | while IFS= read -r -d '' file; do
+  [ $(echo "${file}" | grep '/\.jenkins-backup$\|/\.git$' | wc -l) -eq 1 ] && continue
+  [ -e "${JENKINS_HOME}/${file}" ] && continue
+  rm -rf "${file}"
+done
+
+###################################
+#Make some parameters relocatable
+###################################
 for k in LOCAL_JENKINS_DSA_KEY LOCAL_JENKINS_URL JENKINS_PREFIX ; do
-  sed -i "/>$k</{n;s/>[^>]*</>@$k@</}" $GIT_DIR/config.xml
+  sed -i "/>$k</{n;s/>[^>]*</>@$k@</}" ${GIT_DIR}/config.xml
 done
 
 for f in $(grep "${JENKINS_URL}" ${GIT_DIR}/*.xml | sed 's|.xml:.*|.xml|' | sort | uniq) ; do
   sed -i -e "s|${JENKINS_URL}|@JENKINS_URL@|" $f
 done
 
-for conf in $(find $JENKINS_HOME/secrets -name '*.conf' -type f | sed "s|${JENKINS_HOME}/||") ; do
-  mkdir -p $GIT_DIR/$(dirname ${conf})
-  cp -f $JENKINS_HOME/${conf} $GIT_DIR/${conf}
-done
-for c in $(find $GIT_DIR/secrets -name "*.conf" -type f | sed "s|$GIT_DIR/||") ; do
-  if [ ! -f $JENKINS_HOME/$c ] ; then
-    rm -f $GIT_DIR/$c
-  fi
-done
-
-SECRETS_FILES="$JENKINS_HOME/secret.key $JENKINS_HOME/secret.key.not-so-secret"
-SECRETS_FILES="${SECRETS_FILES} $(grep '>{[^}]*}<' $JENKINS_HOME/*.xml | sed 's|\.xml:.*|.xml|' | sort | uniq)"
-SECRETS_FILES="${SECRETS_FILES} $(grep '<token>' $JENKINS_HOME/*.xml | sed 's|\.xml:.*|.xml|' | sort | uniq)"
-SECRETS_FILES="${SECRETS_FILES} $(find $JENKINS_HOME/secrets -type f | grep -v '\.conf$')"
-SECRETS_FILES="${SECRETS_FILES} $(find $JENKINS_HOME/users/ -name '*.xml' -type f)"
-
-for key in ${SECRETS_FILES} ; do
-  s=$(echo $key | sed "s|$JENKINS_HOME/||")
-  rm -f ${GIT_DIR}/${s}.chksum $GIT_DIR/${s}.enc
-  IGNORE=false
-  for is in ${IGNORE_SECRETS} ; do
-    if [ $(echo $key | grep "$is" | wc -l) -eq 1 ] ; then
-      IGNORE=true
-      break
-    fi
-  done
-  if $IGNORE ; then
-    rm -f ${GIT_DIR}/${s}
-    rm -f ${GIT_DIR}/${s}.jenkins-backup-*
-    continue
-  fi
-  if [ -e ${GIT_DIR}/${s} ] ; then key=${GIT_DIR}/${s} ; fi
-  if [ ! -e $key ] ; then
-    rm -f ${GIT_DIR}/${s}.jenkins-backup-*
-    continue
-  fi
-  mkdir -p ${GIT_DIR}/$(dirname $s)
-  bkey=${GIT_DIR}/${s}.jenkins-backup-chksum
-  ekey=$GIT_DIR/${s}.jenkins-backup-enc
-  chksum=$(sha256sum -b $key | sed 's| .*||')
-  if [ -f $bkey -a -f $ekey ] ; then
-    if [ "$chksum" = "$(cat $bkey)" ] ; then
-      if ! $FORCE_ENC ; then
-        if [ -f ${GIT_DIR}/${s} ] ; then rm -f ${GIT_DIR}/${s} ; fi
-        continue
-      fi
-    fi
-  fi
-  echo "$chksum" >  $bkey
-  openssl enc -e -md sha256 -a -base64 -aes-256-cbc -salt -in $key -out ${ekey} -pass file:$LOCALCLI_KEY
-  if [ -f ${GIT_DIR}/${s} ] ; then rm -f ${GIT_DIR}/${s} ; fi
-done
-
-for s in $(find ${GIT_DIR} -name '*.jenkins-backup-enc' -type f | sed "s|${GIT_DIR}/||;s|.jenkins-backup-enc$||") ; do
-  if [ ! -e ${JENKINS_HOME}/${s} ] ; then
-    rm -f ${GIT_DIR}/${s}.jenkins-backup-*
-  fi
-done
-
-java -jar  ${WORKSPACE}/jenkins-cli.jar -i $LOCALCLI_KEY -s ${LOCAL_JENKINS_URL}/${jenkins_prefix} -remoting groovy $script_dir/get_plugins.groovy | grep -v 'scriptler' | sort > $GIT_DIR/pluginslist
-
-if [ $(grep ':' $GIT_DIR/pluginslist | wc -l) -eq 0 ] ; then
+#Generate plugin list
+java -jar  ${WORKSPACE}/jenkins-cli.jar -i $LOCALCLI_KEY -s ${LOCAL_JENKINS_URL}/${jenkins_prefix} -remoting groovy $script_dir/get_plugins.groovy | grep -v 'scriptler' | sort > $GIT_DIR/pluginslist.conf
+if [ $(grep ':' $GIT_DIR/pluginslist.conf | wc -l) -eq 0 ] ; then
   echo "ERROR: unable to get plugins"
   exit 1
 fi
 
-find ${JENKINS_HOME}/jobs -follow -mindepth 2 -maxdepth 2 -name 'config.xml' -type f |  xargs grep '<disabled>true' | sed "s|${JENKINS_HOME}/jobs/||;s|/.*||" | sort | uniq > ${GIT_DIR}/disabled-jobs.txt
+#Generate disabled job list and make all jobs by default disabled.
+rm -f ${GIT_DIR}/disabled-jobs.conf ; touch ${GIT_DIR}/disabled-jobs.conf
+find ${GIT_DIR}/jobs -mindepth 2 -maxdepth 2 -name '*.xml' -type f -print0  | while IFS= read -r -d '' file; do
+  [ $(grep '<disabled>true' "${file}" | wc -l) -eq 0 ] && continue
+  echo "${file}" | sed "s|${GIT_DIR}/jobs/||;s|/.*$||" >> ${GIT_DIR}/disabled-jobs.conf
+  if [ $(grep '<disabled>false' "${file}" | wc -l) -gt 0 ] ; then
+    sed -i -e 's|<disabled>false|<disabled>true|' "${file}"
+  fi
+done
+
+#######################
+#Encrypt files
+#######################
+#Encrypt xml files
+rm -f files.conf
+find $GIT_DIR -name '*' -type f | sed "s|$GIT_DIR/||" | grep -v '^\.jenkins-backup/\|^\.git/\|/nextBuildNumber$' | grep -v '\.md$\|\.txt$\|\.conf$' > files.conf
+grep '\.xml$' files.conf | while IFS= read -r file; do
+  ${script_dir}/jenkins-encrypt.py -p -P $LOCALCLI_KEY "${file}"
+done
+
+#Encrypt non-xml files
+grep -v '\.xml$' files.conf | while IFS= read -r file; do
+  ${script_dir}/jenkins-encrypt.py -P $LOCALCLI_KEY "${file}"
+done
+
+rm -f files.conf
+XFILES=false
+grep -Ri 'token\|pass\|secret' --exclude-dir=.git --include='*.xml' --include='contents' $GIT_DIR | grep ': *<' | grep -v ': *<[^>]*> *$' | while IFS= read -r data ; do
+  f=$(echo $data | sed 's|:.*||')
+  d=$(echo $data | sed 's|.*:||')
+  [ $(echo $d | grep -f ${script_dir}/etc/pass_keys.txt | wc -l) -gt 0 ] && continue
+  if ! $XFILES ; then echo "ERROR: Found files with secrets/token/password in them" ; fi
+  echo $data
+  XFILES=true
+done
+if  $XFILES ; then exit 1 ;fi
 
 if $PUSH_CHG ; then
   git add . || true
-  git commit -a -m "Updated Jenkins configuration ${GIT_BRANCH}" || true
+  git commit -a -m "Updated Jenkins configuration: $(date)" || true
   #Force Commit every $FORCE_PUSH_TIME sec
   if ! ${FORCE_PUSH} ; then
     let DIFF=$(date +%s)-${LAST_COMMIT_TIME} || true
     if [ $DIFF -gt $FORCE_PUSH_TIME ] ; then FORCE_PUSH=true ; fi
   fi
-  if ${FORCE_PUSH} || [ $(git diff --name-only HEAD origin/$GIT_BRANCH | grep -v 'queue.xml$' | grep -v '/nextBuildNumber$' | grep -v 'AsyncResourceDisposer.xml$'  | wc -l) -gt 0 ] ; then
+  if ${FORCE_PUSH} || [ $(git diff --name-only HEAD origin/$GIT_BRANCH | grep -v 'queue.xml$\|/nextBuildNumber$\|AsyncResourceDisposer.xml$' | wc -l) -gt 0 ] ; then
     echo ">> Files changed"
     git diff --name-only HEAD origin/$GIT_BRANCH
     git push origin $GIT_BRANCH
+    exit 0
   fi
+  git reset --hard HEAD~1
+  git repack -a -d
+  git gc --aggressive
 fi

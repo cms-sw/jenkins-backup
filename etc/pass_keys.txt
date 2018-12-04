@@ -1,0 +1,7 @@
+>@JENKINS_BACKUP_[0-9]*@<
+ plugin=
+<string>
+<description>
+<rememberPasswordEnabled>
+<tokenGenerationOnCreationEnabled>
+<creationOfLegacyTokenEnabled>
