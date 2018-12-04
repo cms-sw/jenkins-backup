@@ -176,16 +176,16 @@ grep -v '\.xml$' files.conf | while IFS= read -r file; do
 done
 
 rm -f files.conf
-XFILES=false
+XFILES="false"
 grep -Ri 'token\|pass\|secret' --exclude-dir=.git --include='*.xml' --include='contents' $GIT_DIR | grep ': *<' | grep -v ': *<[^>]*> *$' | while IFS= read -r data ; do
   f=$(echo $data | sed 's|:.*||')
   d=$(echo $data | sed 's|.*:||')
   [ $(echo $d | grep -f ${script_dir}/etc/pass_keys.txt | wc -l) -gt 0 ] && continue
-  if ! $XFILES ; then echo "ERROR: Found files with secrets/token/password in them" ; fi
+  if [ "$XFILES" = "false" ] ; then echo "ERROR: Found files with secrets/token/password in them" ; fi
   echo $data
-  XFILES=true
+  XFILES="true"
 done
-if $XFILES ; then exit 1 ;fi
+if [ "$XFILES" = "false" ] ; then exit 1 ;fi
 
 if $PUSH_CHG ; then
   git add . || true
