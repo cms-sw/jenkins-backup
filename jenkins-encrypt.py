@@ -16,8 +16,6 @@ def convert_string(xtype, passfile, data):
   return cmd("echo -n '%s' | openssl enc %s -md sha256 -a -base64 -aes-256-cbc -salt -pass file:%s" % (data, xtype, passfile)).strip('\n')
 
 def convert_file(xtype, passfile, infile, outfile):
-  odir = dirname(outfile)
-  if odir: cmd("mkdir -p '%s'" % odir)
   cmd("openssl enc %s -md sha256 -a -base64 -aes-256-cbc -salt -in '%s' -out '%s.tmp' -pass file:%s" % (xtype, infile, outfile, passfile))
   cmd ("mv '%s.tmp' '%s'" % (outfile, outfile))
   return True
@@ -34,26 +32,22 @@ def process(opts, infiles):
       print "ERROR: Invalid file, not available in current working directory: ",infile
       sys.exit(1)
     infile = infile.replace(cwd, "")
-    cdir = '%s/%s' % (opts.cache_dir, infile.split("/",1)[-1] if opts.decrypt else infile)
+    cdir = '%s/%s' % (opts.cache_dir, infile)
     res = 0
     if opts.decrypt: res = do_dec(opts, infile, cdir)
     else:            res = do_enc(opts, infile, cdir)
-    if res!=0:
-      if res>0: print "Processed ",res,infile
-      cmd("rm -rf '%s'" % infile)
+    if res>0: print "Processed ",res,infile
 
 def do_enc(opts, infile, cdir):
-  efile = join(cdir,'contents')
   sfile = join(cdir,'cksum')
   dfile = join(cdir,'data')
   ncksum = cmd("sha256sum -b '%s' | sed 's| .*||'" % infile).strip('\n')
   if not opts.force and exists(sfile):
     ocksum = open(sfile).readline().strip('\n')
-    if (ncksum==ocksum) and exists(efile): return -1
-  cmd("rm -rf '%s'" % cdir)
+    if (ncksum==ocksum): return -1
   if not opts.partial:
-    convert_file('-e', opts.passfile, infile, efile)
-    cmd("echo '%s' > '%s'" % (ncksum, sfile))
+    convert_file('-e', opts.passfile, infile, infile)
+    cmd("mkdir -p '%s' && echo '%s' > '%s'" % (cdir, ncksum, sfile))
     return 1
   mnum=0
   data=[]
@@ -70,27 +64,27 @@ def do_enc(opts, infile, cdir):
          break
     lines.append(l)
   xfile.close()
-  if mnum:
-    cmd("mkdir -p '%s'" % cdir)
-    xfile = open(efile, 'w')
-    for l in lines: xfile.write(l)
-    xfile.close()
-    xfile=open(dfile, 'w')
-    c=-1
-    for d in data:
-      c+=1
-      for x in d.split('\n'): xfile.write('%s:%s\n' % (c,x))
-    xfile.close()
-    cmd("echo '%s' > '%s'" % (ncksum, sfile))
+  if mnum==0:
+    cmd("rm -rf '%s'" % cdir)
+    return 0
+  xfile = open(infile, 'w')
+  for l in lines: xfile.write(l)
+  xfile.close()
+  cmd("mkdir -p '%s'" % cdir)
+  xfile=open(dfile, 'w')
+  c=-1
+  for d in data:
+    c+=1
+    for x in d.split('\n'): xfile.write('%s:%s\n' % (c,x))
+  xfile.close()
+  cmd("echo '%s' > '%s'" % (ncksum, sfile))
   return mnum
 
 def do_dec(opts, infile, cdir):
-  infile = dirname(infile) if infile.endswith('/contents') else infile
-  efile  = infile.split("/",1)[-1]
-  infile = join(cdir,'contents')
   dfile = join(cdir,'data')
   if not exists(dfile):
-    convert_file('-d', opts.passfile, infile, efile)
+    convert_file('-d', opts.passfile, infile, infile)
+    cmd("rm -f '%s'" % cdir)
     return 1
   xfile = open(infile)
   lines = xfile.readlines()
@@ -102,9 +96,7 @@ def do_dec(opts, infile, cdir):
     if not i in data: data[i]=[]
     data[i].append(d)
   xfile.close()
-  edir = dirname(efile)
-  if edir: cmd("mkdir -p '%s'" % edir)
-  xfile = open(efile, 'w')
+  xfile = open(infile, 'w')
   exp =re.compile('^(.*)@JENKINS_BACKUP_([0-9]+)@(.*)')
   for l in lines:
     m = exp.match(l)
@@ -114,6 +106,7 @@ def do_dec(opts, infile, cdir):
       l='%s%s%s\n' % (m.group(1),d,m.group(3))
     xfile.write(l)
   xfile.close()
+  cmd("rm -f '%s'" % cdir)
   return 1
 
 if __name__ == "__main__":

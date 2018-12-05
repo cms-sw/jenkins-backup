@@ -56,14 +56,13 @@ git clean -fdx
 git checkout -q --force $GIT_BRANCH
 git reset --hard origin/$GIT_BRANCH
 if [ "X$KR5_FILE" != "X" ] ; then rm -f $KR5_FILE ; fi
+rm -rf .git
 
 #Decrypt jenkins config files
-find .jenkins-backup -name 'contents' -type f | sed 's|/contents$||' | while IFS= read -r file; do
+find .jenkins-backup -name 'cksum' -type f | sed 's|/cksum$||;s|^.jenkins-backup/||' | while IFS= read -r file; do
   ${script_dir}/jenkins-encrypt.py -d -P $LOCALCLI_KEY "${file}"
 done
-
-#Disabled jobs
-#find ${GIT_DIR}/jobs -mindepth 2 -maxdepth 2 -name 'config.xml' -type f |  xargs -i sed -i -e 's|<disabled>false|<disabled>true|' '{}'
+rm -f .jenkins-backup
 
 #Relocate jenkins parameters
 for f in $(grep "@JENKINS_URL@" ${GIT_DIR}/*.xml | sed 's|.xml:.*|.xml|' | sort | uniq) ; do
@@ -107,7 +106,6 @@ rm -f $GIT_DIR/pluginslist.conf $GIT_DIR/plugins-filter.conf $GIT_DIR/plugins-us
 rsync -av --delete ${JENKINS_PLUGIN_REF}/ ${JENKINS_HOME}/plugins/
 
 find . -maxdepth 1 -mindepth 1 -name '*' | while IFS= read -r file; do
-  [ $(echo "${file}" | grep '/\.jenkins-backup$\|/\.git$' | wc -l) -gt 0 ] && continue
   if [ -d "${file}" ] ; then
     rsync -av "${file}/" "${JENKINS_HOME}/${file}/"
   else
