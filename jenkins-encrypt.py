@@ -59,7 +59,7 @@ def do_enc(opts, infile, cdir):
   for l in xfile.readlines():
     for exp in opts.keywords:
       m = exp.match(l)
-      if m:
+      if m and (m.group(2)!=''):
          x=[]
          data.append(convert_string('-e',opts.passfile, m.group(2)))
          l='%s@JENKINS_BACKUP_%s@%s' % (m.group(1),mnum,m.group(3))

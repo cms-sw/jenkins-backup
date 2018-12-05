@@ -8,3 +8,8 @@
 <name>
 <variable>
 <role>
+<credentialsId>
+<message>
+<command>
+<id>
+<[a-zA-Z][^>]*></[a-zA-Z][^>]*>
