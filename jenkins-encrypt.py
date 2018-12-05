@@ -25,7 +25,12 @@ def process(opts, infiles):
     search = []
     for v in opts.values:   search.append(re.compile(v, re.I))
     for k in opts.keywords: search.append(re.compile('^(\s*<%s>)([^<]*)(</%s>\s*)' % (k,k),re.I))
+    msearch = {}
+    for k in opts.mkeywords:
+      search.append(re.compile('^(\s*<(%s)>)(.*)' % k,re.I))
+      msearch[k] = re.compile('^(.*)(</%s>\s*)' % k,re.I)
     opts.keywords = search
+    opts.mkeywords = msearch
   cwd = abspath(getcwd())+"/"
   for infile in [abspath(f) for f in infiles]:
     if not infile.startswith(cwd):
@@ -56,15 +61,31 @@ def do_enc(opts, infile, cdir):
   data=[]
   lines = []
   xfile = open(infile)
+  mdata=["","",""]
   for l in xfile.readlines():
+    if mdata[0]:
+      m = opts.mkeywords[mdata[0]].match(l)
+      if not m:
+        mdata[2]+=l
+        continue
+      mdata[2]+=m.group(1)
+      mdata[0]=""
+      data.append(convert_string('-e',opts.passfile,mdata[2]))
+      lines.append("%s@JENKINS_BACKUP_%s@%s" % (mdata[1],mnum,m.group(2)))
+      mnum+=1
+      continue
     for exp in opts.keywords:
       m = exp.match(l)
-      if m and (m.group(2)!=''):
-         x=[]
-         data.append(convert_string('-e',opts.passfile, m.group(2)))
-         l='%s@JENKINS_BACKUP_%s@%s' % (m.group(1),mnum,m.group(3))
-         mnum+=1
-         break
+      if m:
+        if m.group(2) in opts.mkeywords:
+          mdata = [m.group(2),m.group(1),m.group(3)+'\n']
+        elif (m.group(2)!=''):
+          x=[]
+          data.append(convert_string('-e',opts.passfile,m.group(2)))
+          l='%s@JENKINS_BACKUP_%s@%s' % (m.group(1),mnum,m.group(3))
+          mnum+=1
+        break
+    if mdata[0]: continue
     lines.append(l)
   xfile.close()
   if mnum==0:
@@ -113,13 +134,15 @@ def do_dec(opts, infile, cdir):
   return 1
 
 if __name__ == "__main__":
+  default_multikeys = ['privateKey']
   default_keys = ['passwordhash','password','apiToken', 'token','passphrase', 'proxyPassword','gitlabApiToken','slackOutgoingWebhookToken']
   from optparse import OptionParser
   parser = OptionParser(usage="%prog <infile>")
   parser.add_option("-f", dest="force",     action="store_true", help="Force encrypt.", default=False)
   parser.add_option("-d", dest="decrypt",   action="store_true", help="Decrypt the input file.", default=False)
   parser.add_option("-p", dest="partial",   action="store_true", help="Do the partial encryption/decryption. Default is full", default=False)
-  parser.add_option("-k", dest="keywords",  help="XML keywords to encrypt.", action='append', default=default_keys)
+  parser.add_option("-k", dest="mkeywords", help="XML multi-line keywords to encrypt.", action='append', default=default_multikeys)
+  parser.add_option("-K", dest="keywords",  help="XML keywords to encrypt.", action='append', default=default_keys)
   parser.add_option("-v", dest="values",    help="XML values to encrypt.", action='append', default=['^(.*<.+?>)({[^}]+})(<.+>\s*)'])
   parser.add_option("-P", dest="passfile",  help="Passfile to use to encrypt/decrypt data.", type=str, default='~/.ssh/id_dsa')
   parser.add_option("-c", dest="cache_dir", help="Jenkins backup cache directory", type=str, default='.jenkins-backup')
@@ -129,6 +152,7 @@ if __name__ == "__main__":
   opts.passfile = expanduser(opts.passfile)
   if not exists (opts.passfile): parser.error("No such file: %s" % opts.passfile)
   if not exists (opts.cache_dir): cmd('mkdir -p %s' % opts.cache_dir)
-  for k in default_keys:
-    if not k in opts.keywords: opts.keywords.append(k)
+  if opts.decrypt:
+    opts.keywords = list(set(opts.keywords+default_keys))
+    opts.mkeywords = list(set(opts.mkeywords+default_multikeys))
   process(opts, args)
