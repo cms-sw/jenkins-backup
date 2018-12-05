@@ -110,6 +110,7 @@ rsync -avm --delete --delete-excluded --exclude='**/builds/' --exclude='**/works
 
 #Create a prefix file
 echo "${jenkins_prefix}" > jenkins_prefix
+rm -f README.md
 ############################
 # Delete un-needed stuff
 ############################
