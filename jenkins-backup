@@ -108,6 +108,8 @@ done
 #Copy Jobs
 rsync -avm --delete --delete-excluded --exclude='**/builds/' --exclude='**/workspace/' --include='*/' --include='config.xml' --exclude='*' $JENKINS_HOME/jobs/ $GIT_DIR/jobs/
 
+#Create a prefix file
+echo "${jenkins_prefix}" > jenkins_prefix
 ############################
 # Delete un-needed stuff
 ############################
@@ -164,7 +166,7 @@ done
 #######################
 #Encrypt xml files
 rm -f files.conf
-find $GIT_DIR -name '*' -type f | sed "s|$GIT_DIR/||" | grep -v '^\.jenkins-backup/\|^\.git/\|^nextBuildNumber$' | grep -v '\.md$\|\.txt$\|\.conf$' > files.conf
+find $GIT_DIR -name '*' -type f | sed "s|$GIT_DIR/||" | grep -v '^\.jenkins-backup/\|^\.git/\|^nextBuildNumber$\|^jenkins_prefix$' | grep -v '\.md$\|\.txt$\|\.conf$' > files.conf
 grep '\.xml$' files.conf | while IFS= read -r file; do
   ${script_dir}/jenkins-encrypt.py ${FORCE_ENCRYPT} -p -P $LOCALCLI_KEY "${file}"
 done
@@ -187,9 +189,6 @@ if [ -f jenkins-backup-invalid-files.txt ] ; then
   rm -f jenkins-backup-invalid-files.txt
   exit 1
 fi
-
-#Create a prefix file
-echo "${jenkins_prefix}" > jenkins_prefix
 
 if $PUSH_CHG ; then
   git add . || true
