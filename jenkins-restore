@@ -64,6 +64,14 @@ find .jenkins-backup -name 'cksum' -type f | sed 's|/cksum$||;s|^.jenkins-backup
 done
 rm -f .jenkins-backup
 
+#Recreate nextBuildNumber files
+cat nextBuildNumber | while IFS= read -r line; do
+  job=$(echo "$line" | sed 's|=[0-9]*$||')
+  num=$(echo "$line" | sed 's|.*=||')
+  if [ -d "jobs/${job}" ] ; then echo $num > "jobs/${job}/nextBuildNumber" ; fi
+done
+rm -f nextBuildNumber
+
 #Relocate jenkins parameters
 for f in $(grep "@JENKINS_URL@" ${GIT_DIR}/*.xml | sed 's|.xml:.*|.xml|' | sort | uniq) ; do
   sed -i -e "s|@JENKINS_URL@|${JENKINS_URL}|" $f
