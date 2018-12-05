@@ -39,15 +39,18 @@ def process(opts, infiles):
     if res>0: print "Processed ",res,infile
 
 def do_enc(opts, infile, cdir):
+  efile = join(cdir,'data')
   sfile = join(cdir,'cksum')
-  dfile = join(cdir,'data')
+  dfile = join(cdir,'config')
   ncksum = cmd("sha256sum -b '%s' | sed 's| .*||'" % infile).strip('\n')
   if not opts.force and exists(sfile):
     ocksum = open(sfile).readline().strip('\n')
-    if (ncksum==ocksum): return -1
+    if (ncksum==ocksum) and exists (efile):
+      cmd("cp -f '%s' '%s'" % (efile, infile)
+      return -1
   if not opts.partial:
     convert_file('-e', opts.passfile, infile, infile)
-    cmd("mkdir -p '%s' && echo '%s' > '%s'" % (cdir, ncksum, sfile))
+    cmd("mkdir -p '%s' && cp -f '%s' '%s' && echo '%s' > '%s'" % (cdir, infile, efile, ncksum, sfile))
     return 1
   mnum=0
   data=[]
@@ -77,11 +80,11 @@ def do_enc(opts, infile, cdir):
     c+=1
     for x in d.split('\n'): xfile.write('%s:%s\n' % (c,x))
   xfile.close()
-  cmd("echo '%s' > '%s'" % (ncksum, sfile))
+  cmd("cp -f '%s' '%s' && echo '%s' > '%s'" % (infile, efile, ncksum, sfile))
   return mnum
 
 def do_dec(opts, infile, cdir):
-  dfile = join(cdir,'data')
+  dfile = join(cdir,'config')
   if not exists(dfile):
     convert_file('-d', opts.passfile, infile, infile)
     cmd("rm -f '%s'" % cdir)
