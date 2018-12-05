@@ -127,14 +127,6 @@ find . -maxdepth 1 -mindepth 1 -name '*' -print0  | while IFS= read -r -d '' fil
   rm -rf "${file}"
 done
 
-#Create one file for nextBuildNumbers
-rm -f $GIT_DIR/nextBuildNumber; touch $GIT_DIR/nextBuildNumber
-find $GIT_DIR/jobs/ -name 'config.xml' -type f | sed "s|$GIT_DIR/jobs/||;s|/config.xml$||" | sort | while IFS= read -r job ; do
-  num_file="${JENKINS_HOME}/jobs/${job}/nextBuildNumber"
-  [ -e "${num_file}" ] || continue
-  num=$(head -1 "${num_file}")
-  echo "$job=$num" >> $GIT_DIR/nextBuildNumber
-done
 ###################################
 #Make some parameters relocatable
 ###################################
@@ -180,6 +172,16 @@ done
 grep -v '\.xml$' files.conf | while IFS= read -r file; do
   ${script_dir}/jenkins-encrypt.py ${FORCE_ENCRYPT} -P $LOCALCLI_KEY "${file}"
 done
+
+#Create one file for nextBuildNumbers
+rm -f $GIT_DIR/nextBuildNumber; touch $GIT_DIR/nextBuildNumber
+grep -v '/config\.xml$' files.conf | grep '^jobs/' | sed 's|^jobs/||;s|/config.xml||' | sort | while IFS= read -r job ; do
+  num_file="${JENKINS_HOME}/jobs/${job}/nextBuildNumber"
+  [ -e "${num_file}" ] || continue
+  num=$(head -1 "${num_file}")
+  echo "$job=$num" >> $GIT_DIR/nextBuildNumber
+done
+
 
 rm -f files.conf jenkins-backup-invalid-files.txt
 grep -Ri 'token\|pass\|secret' --exclude-dir=.git --include='*.xml' $GIT_DIR | grep ': *<' | grep -v ': *<[^>]*> *$' | while IFS= read -r data ; do
