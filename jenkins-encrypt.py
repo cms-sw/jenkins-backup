@@ -45,8 +45,8 @@ def do_enc(opts, infile, cdir):
   ncksum = cmd("sha256sum -b '%s' | sed 's| .*||'" % infile).strip('\n')
   if not opts.force and exists(sfile):
     ocksum = open(sfile).readline().strip('\n')
-    if (ncksum==ocksum) and exists (efile):
-      cmd("cp -f '%s' '%s'" % (efile, infile)
+    if (ncksum==ocksum) and exists(efile):
+      cmd("cp -f '%s' '%s'" % (efile, infile))
       return -1
   if not opts.partial:
     convert_file('-e', opts.passfile, infile, infile)
