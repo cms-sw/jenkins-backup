@@ -107,6 +107,8 @@ done
 #Copy Jobs
 rsync -avm --delete --delete-excluded --exclude='**/builds/' --exclude='**/workspace/' --include='*/' --include='config.xml' --exclude='*' $JENKINS_HOME/jobs/ $GIT_DIR/jobs/
 
+#Create a prefix file
+echo "${jenkins_prefix}" > jenkins_prefix
 ############################
 # Delete un-needed stuff
 ############################
