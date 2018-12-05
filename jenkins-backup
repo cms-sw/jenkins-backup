@@ -183,9 +183,9 @@ grep '/config\.xml$' files.conf | grep '^jobs/' | sed 's|^jobs/||;s|/config.xml|
 done
 
 rm -f files.conf jenkins-backup-invalid-files.txt
-grep -Ri 'token\|pass\|secret' --exclude-dir=.git --include='*.xml' $GIT_DIR | grep ': *<' | grep -v ': *<[^>]*> *$' | while IFS= read -r data ; do
+grep -Ri '<[^>]*\(token\|pass\|secret\|api\|key\)[^>]*>' --exclude-dir=.git --include='*.xml' $GIT_DIR | grep '^[^:]*: *<' | grep -v '^[^:]*: *<[^>]*> *$' | while IFS= read -r data ; do
   f=$(echo $data | sed 's|:.*||')
-  d=$(echo $data | sed 's|.*:||')
+  d=$(echo $data | sed 's|^[^:]*:||')
   [ $(echo $d | grep -f ${script_dir}/etc/pass_keys.txt | wc -l) -gt 0 ] && continue
   echo "$data" >> jenkins-backup-invalid-files.txt
 done
