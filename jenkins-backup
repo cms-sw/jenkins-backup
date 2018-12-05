@@ -175,7 +175,7 @@ done
 
 #Create one file for nextBuildNumbers
 rm -f $GIT_DIR/nextBuildNumber; touch $GIT_DIR/nextBuildNumber
-grep -v '/config\.xml$' files.conf | grep '^jobs/' | sed 's|^jobs/||;s|/config.xml||' | sort | while IFS= read -r job ; do
+grep '/config\.xml$' files.conf | grep '^jobs/' | sed 's|^jobs/||;s|/config.xml||' | sort | while IFS= read -r job ; do
   num_file="${JENKINS_HOME}/jobs/${job}/nextBuildNumber"
   [ -e "${num_file}" ] || continue
   num=$(head -1 "${num_file}")
