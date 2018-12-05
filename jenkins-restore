@@ -23,7 +23,7 @@ fi
 JENKINS_PORT=$(pgrep -x -a  -f ".*httpPort=.*" | tail -1 | tr ' ' '\n' | grep httpPort | sed 's|.*=||')
 LOCAL_JENKINS_URL=http://localhost:${JENKINS_PORT}
 export JENKINS_PLUGIN_REF="${BACKUP_REF_DIR}/plugins"
-script_dir=$(dirname $0)
+script_dir=$(cd $(dirname $0); /bin/pwd)
 jenkins_prefix=""
 if [ -f ${JENKINS_HOME}/jenkins_prefix ] ; then
   jenkins_prefix=$(cat ${JENKINS_HOME}/jenkins_prefix)
@@ -62,7 +62,7 @@ rm -rf .git
 find .jenkins-backup -name 'cksum' -type f | sed 's|/cksum$||;s|^.jenkins-backup/||' | while IFS= read -r file; do
   ${script_dir}/jenkins-encrypt.py -d -P $LOCALCLI_KEY "${file}"
 done
-rm -f .jenkins-backup
+rm -rf .jenkins-backup
 
 #Recreate nextBuildNumber files
 cat nextBuildNumber | while IFS= read -r line; do

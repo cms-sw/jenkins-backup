@@ -87,7 +87,7 @@ def do_dec(opts, infile, cdir):
   dfile = join(cdir,'config')
   if not exists(dfile):
     convert_file('-d', opts.passfile, infile, infile)
-    cmd("rm -f '%s'" % cdir)
+    cmd("rm -rf '%s'" % cdir)
     return 1
   xfile = open(infile)
   lines = xfile.readlines()
@@ -109,7 +109,7 @@ def do_dec(opts, infile, cdir):
       l='%s%s%s\n' % (m.group(1),d,m.group(3))
     xfile.write(l)
   xfile.close()
-  cmd("rm -f '%s'" % cdir)
+  cmd("rm -rf '%s'" % cdir)
   return 1
 
 if __name__ == "__main__":
