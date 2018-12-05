@@ -182,7 +182,6 @@ grep -v '/config\.xml$' files.conf | grep '^jobs/' | sed 's|^jobs/||;s|/config.x
   echo "$job=$num" >> $GIT_DIR/nextBuildNumber
 done
 
-
 rm -f files.conf jenkins-backup-invalid-files.txt
 grep -Ri 'token\|pass\|secret' --exclude-dir=.git --include='*.xml' $GIT_DIR | grep ': *<' | grep -v ': *<[^>]*> *$' | while IFS= read -r data ; do
   f=$(echo $data | sed 's|:.*||')
