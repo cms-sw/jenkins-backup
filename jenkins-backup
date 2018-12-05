@@ -166,8 +166,11 @@ done
 #Encrypt files
 #######################
 #Encrypt xml files
-rm -f files.conf
-find $GIT_DIR -name '*' -type f | sed "s|$GIT_DIR/||" | grep -v '^\.jenkins-backup/\|^\.git/\|^nextBuildNumber$\|^jenkins_prefix$' | grep -v '\.md$\|\.txt$\|\.conf$' > files.conf
+find $GIT_DIR -name '*.xml' -type f | sed "s|$GIT_DIR/||" | grep -v '^\.git/' > files.conf
+find $GIT_DIR/secrets -type f | sed "s|$GIT_DIR/||" | grep -v '\.conf$' >> files.conf
+for extra in secret.key secret.key.not-so-secret ; do
+  if [ -f $extra ] ; then echo $extra >> files.conf ; fi
+done
 grep '\.xml$' files.conf | while IFS= read -r file; do
   ${script_dir}/jenkins-encrypt.py ${FORCE_ENCRYPT} -p -P $LOCALCLI_KEY "${file}"
 done
