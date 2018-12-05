@@ -78,10 +78,11 @@ LAST_COMMIT_TIME=$(git log -1 --date=short --pretty=format:%ct)
 #################################
 #Copy all configuration files
 #################################
-#Copy top level xml files
+#Copy top level xml files except for queue.xml (which represent a local queue)
 find $JENKINS_HOME -maxdepth 1 -mindepth 1 -name '*.xml' -type f -print0  | while IFS= read -r -d '' file; do
   cp -f "${file}" ${GIT_DIR}/
 done
+rm -f queue.xml
 
 #Copy any extra non xml files
 for f in ${INCLUDE_FILES} ; do
@@ -107,8 +108,6 @@ done
 #Copy Jobs
 rsync -avm --delete --delete-excluded --exclude='**/builds/' --exclude='**/workspace/' --include='*/' --include='config.xml' --exclude='*' $JENKINS_HOME/jobs/ $GIT_DIR/jobs/
 
-#Create a prefix file
-echo "${jenkins_prefix}" > jenkins_prefix
 ############################
 # Delete un-needed stuff
 ############################
@@ -188,6 +187,9 @@ if [ -f jenkins-backup-invalid-files.txt ] ; then
   rm -f jenkins-backup-invalid-files.txt
   exit 1
 fi
+
+#Create a prefix file
+echo "${jenkins_prefix}" > jenkins_prefix
 
 if $PUSH_CHG ; then
   git add . || true

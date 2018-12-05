@@ -87,7 +87,16 @@ for k in LOCAL_JENKINS_DSA_KEY LOCAL_JENKINS_URL JENKINS_PREFIX ; do
     sed -i -e "s|@$k@|${v}|" ${GIT_DIR}/config.xml
   fi
 done
+#Relocate Workspace for nodes if needed
+if [ -f jenkins_prefix ] ; then
+  old_jenkins_prefix=$(cat jenkins_prefix)
+  if [ "${old_jenkins_prefix}" != "" -a "${old_jenkins_prefix}" != "${jenkins_prefix}" ] ; then
+    find nodes -name config.xml -type f | xargs --no-run-if-empty sed -i -e "s|/${old_jenkins_prefix}</remoteFS>|/${jenkins_prefix}</remoteFS>|"
+  fi
+  rm -f jenkins_prefix
+fi
 
+#Set slots for master nodes
 MASTER_EXEC=$(getconf _NPROCESSORS_ONLN)
 if [ $MASTER_EXEC -lt 2 ] ; then MASTER_EXEC=2; fi
 sed -i -e "s|<numExecutors>[0-9]*</numExecutors>|<numExecutors>${MASTER_EXEC}</numExecutors>|" ${GIT_DIR}/config.xml
@@ -113,10 +122,5 @@ rm -f $GIT_DIR/pluginslist.conf $GIT_DIR/plugins-filter.conf $GIT_DIR/plugins-us
 #Sync jenkins configuration back to jenkins home
 rsync -av --delete ${JENKINS_PLUGIN_REF}/ ${JENKINS_HOME}/plugins/
 
-find . -maxdepth 1 -mindepth 1 -name '*' | while IFS= read -r file; do
-  if [ -d "${file}" ] ; then
-    rsync -av "${file}/" "${JENKINS_HOME}/${file}/"
-  else
-    cp -f "${file}" "${JENKINS_HOME}/${file}"
-  fi
-done
+#Sync all the rest
+rsync -av $GIT_DIR/ ${JENKINS_HOME}/
