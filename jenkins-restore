@@ -122,7 +122,7 @@ rm -f $GIT_DIR/pluginslist.conf $GIT_DIR/plugins-filter.conf $GIT_DIR/plugins-us
 #Sync jenkins configuration back to jenkins home
 rsync -av --delete ${JENKINS_PLUGIN_REF}/ ${JENKINS_HOME}/plugins/
 
-#Sync all the rest
+#Sync all the rest. We do it for top level files to keep the symlinks
 find . -maxdepth 1 -mindepth 1 -name '*' | while IFS= read -r file; do
   if [ -d "${file}" ] ; then
     rsync -av "${file}/" "${JENKINS_HOME}/${file}/"
