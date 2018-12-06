@@ -119,6 +119,11 @@ ${script_dir}/install-plugins.sh $GIT_DIR/pluginslist.conf $GIT_DIR/plugins-filt
 rm -rf ${JENKINS_PLUGIN_REF}/tmp ${JENKINS_PLUGIN_REF}/deps-plugins.txt ${JENKINS_PLUGIN_REF}/deps-plugins.txt.uniq
 rm -f $GIT_DIR/pluginslist.conf $GIT_DIR/plugins-filter.conf $GIT_DIR/plugins-used.conf
 
+#Disable all jobs
+find ${GIT_DIR}/jobs -mindepth 2 -maxdepth 2 -name 'config.xml' -type f | while IFS= read -r file; do
+  sed -i -e 's|<disabled>false|<disabled>true|' "${file}"
+done
+
 #Sync jenkins configuration back to jenkins home
 rsync -av --delete ${JENKINS_PLUGIN_REF}/ ${JENKINS_HOME}/plugins/
 

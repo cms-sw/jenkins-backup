@@ -88,7 +88,7 @@ LAST_COMMIT_TIME=$(git log -1 --date=short --pretty=format:%ct)
 #Copy all configuration files
 #################################
 #Copy top level xml files except for queue.xml (which represent a local queue)
-find $JENKINS_HOME -maxdepth 1 -mindepth 1 -name '*.xml' -type f -print0  | while IFS= read -r -d '' file; do
+find $JENKINS_HOME -maxdepth 1 -mindepth 1 -name '*.xml' -type f | while IFS= read -r file; do
   cp -f "${file}" ${GIT_DIR}/
 done
 rm -f queue.xml
@@ -130,7 +130,7 @@ rm -rf $GIT_DIR/scriptler
 for is in ${EXCLUDE_FILES} ; do rm -rf "${GIT_DIR}/${is}" ; done
 
 #Delete top level files which are not in JENKINS_HOME
-find . -maxdepth 1 -mindepth 1 -name '*' -print0  | while IFS= read -r -d '' file; do
+find . -maxdepth 1 -mindepth 1 -name '*' | while IFS= read -r file; do
   [ $(echo "${file}" | grep '/\.jenkins-backup$\|/\.git$' | wc -l) -eq 1 ] && continue
   [ -e "${JENKINS_HOME}/${file}" ] && continue
   rm -rf "${file}"
@@ -154,14 +154,11 @@ if [ $(grep ':' $GIT_DIR/pluginslist.conf | wc -l) -eq 0 ] ; then
   exit 1
 fi
 
-#Generate disabled job list and make all jobs by default disabled.
+#Generate disabled job list
 rm -f ${GIT_DIR}/disabled-jobs.conf ; touch ${GIT_DIR}/disabled-jobs.conf
-find ${GIT_DIR}/jobs -mindepth 2 -maxdepth 2 -name '*.xml' -type f -print0  | while IFS= read -r -d '' file; do
+find ${GIT_DIR}/jobs -mindepth 2 -maxdepth 2 -name 'config.xml' -type f | sort | while IFS= read -r file; do
   [ $(grep '<disabled>true' "${file}" | wc -l) -eq 0 ] && continue
   echo "${file}" | sed "s|${GIT_DIR}/jobs/||;s|/.*$||" >> ${GIT_DIR}/disabled-jobs.conf
-  if [ $(grep '<disabled>false' "${file}" | wc -l) -gt 0 ] ; then
-    sed -i -e 's|<disabled>false|<disabled>true|' "${file}"
-  fi
 done
 
 #######################
