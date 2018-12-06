@@ -64,11 +64,9 @@ GIT_BRANCH=${jenkins_prefix}${branch}
 GIT_DIR=${WORKSPACE}/backup/${GIT_BRANCH}
 if $RESET_BACKUP ; then rm -rf $GIT_DIR ; fi
 mkdir -p $(dirname $GIT_DIR)
-if [ ! -d $GIT_DIR ] ; then
-  git clone $BACK_REPO $GIT_DIR
-  if $RESET_BACKUP ; then git push origin --delete ${GIT_BRANCH} || true ; fi
-fi
+if [ ! -d $GIT_DIR ] ; then git clone $BACK_REPO $GIT_DIR ; fi
 cd $GIT_DIR
+if $RESET_BACKUP ; then git push origin --delete ${GIT_BRANCH} || true ; fi
 if [ $(git branch -a | grep remotes/origin/${GIT_BRANCH} | wc -l) -gt 0 ] ; then
   git clean -fdx
   git checkout -q --force $GIT_BRANCH
