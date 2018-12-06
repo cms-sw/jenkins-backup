@@ -123,4 +123,10 @@ rm -f $GIT_DIR/pluginslist.conf $GIT_DIR/plugins-filter.conf $GIT_DIR/plugins-us
 rsync -av --delete ${JENKINS_PLUGIN_REF}/ ${JENKINS_HOME}/plugins/
 
 #Sync all the rest
-rsync -av $GIT_DIR/ ${JENKINS_HOME}/
+find . -maxdepth 1 -mindepth 1 -name '*' | while IFS= read -r file; do
+  if [ -d "${file}" ] ; then
+    rsync -av "${file}/" "${JENKINS_HOME}/${file}/"
+  else
+    cp -f "${file}" "${JENKINS_HOME}/${file}"
+  fi
+done
