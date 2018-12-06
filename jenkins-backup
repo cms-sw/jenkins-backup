@@ -12,12 +12,14 @@ FORCE_PUSH_TIME=3600
 FORCE_ENCRYPT=""
 EXCLUDE_FILES="secrets/cmssdt-es-secret secrets/github_hook_secret_cmsbot"
 NUM_PROC=$(getconf _NPROCESSORS_ONLN)
+RESET_BACKUP=true
 while [[ $# -gt 0 ]] ; do
   opt=$1; shift
   case $opt in
     -e|--force-encrypt)FORCE_ENCRYPT="-f";;
     -p|--push)         PUSH_CHG=true;;
     -f|--force)        FORCE_PUSH=true;;
+    -R|--reset-backup) RESET_BACKUP=true;;
     -F|--push-time)    FORCE_PUSH_TIME=$1; shift;;
     -h|--home)         JENKINS_HOME=$1; shift ;;
     -r|--repository)   BACK_REPO=$1; shift ;;
@@ -60,14 +62,20 @@ if [ "X$branch" = "X" ] ; then
 fi
 GIT_BRANCH=${jenkins_prefix}${branch}
 GIT_DIR=${WORKSPACE}/backup/${GIT_BRANCH}
+if $RESET_BACKUP ; then rm -rf $GIT_DIR ; fi
 mkdir -p $(dirname $GIT_DIR)
-if [ ! -d $GIT_DIR ] ; then git clone $BACK_REPO $GIT_DIR ; fi
+if [ ! -d $GIT_DIR ] ; then
+  git clone $BACK_REPO $GIT_DIR
+  if $RESET_BACKUP ; then git push origin --delete ${GIT_BRANCH} || true ; fi
+fi
 cd $GIT_DIR
 if [ $(git branch -a | grep remotes/origin/${GIT_BRANCH} | wc -l) -gt 0 ] ; then
   git clean -fdx
   git checkout -q --force $GIT_BRANCH
   git pull origin $GIT_BRANCH
   git reset --hard origin/$GIT_BRANCH
+  git repack -a -d
+  git gc --aggressive
 else
   git checkout --orphan ${GIT_BRANCH}
   rm -rf * || true
@@ -218,6 +226,4 @@ if $PUSH_CHG ; then
     exit 0
   fi
   git reset --hard HEAD~1
-  git repack -a -d
-  git gc --aggressive
 fi
