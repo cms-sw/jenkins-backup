@@ -214,7 +214,7 @@ if $PUSH_CHG ; then
     let DIFF=$(date +%s)-${LAST_COMMIT_TIME} || true
     if [ $DIFF -gt $FORCE_PUSH_TIME ] ; then FORCE_PUSH=true ; fi
   fi
-  if ${FORCE_PUSH} || [ $(git diff --name-only HEAD origin/$GIT_BRANCH | grep -v '^queue.xml$\|^nextBuildNumber$\|AsyncResourceDisposer.xml$' | wc -l) -gt 0 ] ; then
+  if ${FORCE_PUSH} || [ $(git diff --name-only HEAD origin/$GIT_BRANCH | grep -v '^org.jenkinsci.plugins.workflow.flow.FlowExecutionList.xml\|^queue.xml$\|^nextBuildNumber$\|AsyncResourceDisposer.xml$' | wc -l) -gt 0 ] ; then
     echo ">> Files changed"
     git diff --name-only HEAD origin/$GIT_BRANCH
     git push origin $GIT_BRANCH
