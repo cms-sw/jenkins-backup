@@ -60,7 +60,7 @@ if [ "X$branch" = "X" ] ; then
   echo "Error: Unable to find jenkins version"
   exit 1
 fi
-GIT_BRANCH=${jenkins_prefix}${branch}
+GIT_BRANCH="$(hostname -s)-${branch}"
 GIT_DIR=${WORKSPACE}/backup/${GIT_BRANCH}
 if $RESET_BACKUP ; then rm -rf $GIT_DIR ; fi
 mkdir -p $(dirname $GIT_DIR)
