@@ -107,8 +107,8 @@ find $GIT_DIR -name '*.xml' -type f | while IFS= read -r file; do
   (grep ' plugin=' "${file}" | sed 's|.* plugin="||;s|@.*||' | grep -v '^pipeline-' || true) >> $GIT_DIR/plugins-used.conf
 done
 
-#Force install matrix-auth
-echo 'matrix-auth' >> $GIT_DIR/plugins-used.conf
+#Force install default plugins
+if [ -e ${script_dir}/etc/default_plugins.txt ] ; then cat ${script_dir}/etc/default_plugins.txt >> $GIT_DIR/plugins-used.conf ; fi
 
 rm -rf $GIT_DIR/plugins-filter.conf && touch $GIT_DIR/plugins-filter.conf
 for p in $(cat $GIT_DIR/plugins-used.conf | sort -u) ; do
@@ -120,7 +120,7 @@ rm -rf ${JENKINS_PLUGIN_REF}/tmp ${JENKINS_PLUGIN_REF}/deps-plugins.txt ${JENKIN
 rm -f $GIT_DIR/pluginslist.conf $GIT_DIR/plugins-filter.conf $GIT_DIR/plugins-used.conf
 
 #Disable all jobs
-find ${GIT_DIR}/jobs -mindepth 2 -maxdepth 2 -name 'config.xml' -type f | while IFS= read -r file; do
+find ${GIT_DIR}/jobs -mindepth 2 -name 'config.xml' -type f | grep -v '/configurations/' | while IFS= read -r file; do
   sed -i -e 's|<disabled>false|<disabled>true|' "${file}"
 done
 

@@ -156,7 +156,7 @@ fi
 
 #Generate disabled job list
 rm -f ${GIT_DIR}/disabled-jobs.conf ; touch ${GIT_DIR}/disabled-jobs.conf
-find ${GIT_DIR}/jobs -mindepth 2 -maxdepth 2 -name 'config.xml' -type f | sort | while IFS= read -r file; do
+find ${GIT_DIR}/jobs -mindepth 2 -name 'config.xml' -type f | grep -v '/configurations/' | sort | while IFS= read -r file; do
   [ $(grep '<disabled>true' "${file}" | wc -l) -eq 0 ] && continue
   echo "${file}" | sed "s|${GIT_DIR}/jobs/||;s|/.*$||" >> ${GIT_DIR}/disabled-jobs.conf
 done
