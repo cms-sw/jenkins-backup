@@ -2,5 +2,6 @@
 <key\|overrideKey\|keyfile\|keyPath>
 <apiTokenId\|serverAPIUrl>
 <privateKeyFile\|authorizedKeys\|privateKeyLocation>
+<passwordVariable>
 >true\|false<
 <[a-zA-Z][^>]*></[a-zA-Z][^>]*>
