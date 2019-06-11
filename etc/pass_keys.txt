@@ -3,5 +3,6 @@
 <apiTokenId\|serverAPIUrl>
 <privateKeyFile\|authorizedKeys\|privateKeyLocation>
 <passwordVariable>
+<tokenUuid>
 >true\|false<
 <[a-zA-Z][^>]*></[a-zA-Z][^>]*>
