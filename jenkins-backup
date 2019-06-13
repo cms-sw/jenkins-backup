@@ -148,7 +148,9 @@ for f in $(grep "${JENKINS_URL}" ${GIT_DIR}/*.xml | sed 's|.xml:.*|.xml|' | sort
 done
 
 #Generate plugin list
-java -jar  ${WORKSPACE}/jenkins-cli.jar -i $LOCALCLI_KEY -s ${LOCAL_JENKINS_URL}/${jenkins_prefix} -remoting groovy $script_dir/get_plugins.groovy | grep -v 'scriptler' | sort > $GIT_DIR/pluginslist.conf
+SSHD_PORT=$(grep '<port>' $JENKINS_HOME/org.jenkinsci.main.modules.sshd.SSHD.xml | sed 's|</.*||;s|.*>||')
+JENKINS_CLI_CMD="ssh -o IdentitiesOnly=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i $LOCALCLI_KEY -l localcli -p ${SSHD_PORT} localhost"
+cat $script_dir/get_plugins.groovy | ${JENKINS_CLI_CMD} groovy = | grep -v 'scriptler' | sort > $GIT_DIR/pluginslist.conf
 if [ $(grep ':' $GIT_DIR/pluginslist.conf | wc -l) -eq 0 ] ; then
   echo "ERROR: unable to get plugins"
   exit 1
