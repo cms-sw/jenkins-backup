@@ -135,7 +135,7 @@ def do_dec(opts, infile, cdir):
 
 if __name__ == "__main__":
   default_multikeys = ['privateKey']
-  default_keys = ['passwordhash','password','apiToken', 'token','passphrase', 'proxyPassword','gitlabApiToken','slackOutgoingWebhookToken']
+  default_keys = ['authToken', 'passwordhash','password','apiToken', 'token','passphrase', 'proxyPassword','gitlabApiToken','slackOutgoingWebhookToken']
   from optparse import OptionParser
   parser = OptionParser(usage="%prog <infile>")
   parser.add_option("-f", dest="force",     action="store_true", help="Force encrypt.", default=False)
