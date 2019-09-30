@@ -60,7 +60,7 @@ rm -rf .git
 
 #Decrypt jenkins config files
 find .jenkins-backup -name 'cksum' -type f | sed 's|/cksum$||;s|^.jenkins-backup/||' | while IFS= read -r file; do
-  ${script_dir}/jenkins-encrypt.py -d -P $LOCALCLI_KEY "${file}"
+  [ -e "${file}" ] && ${script_dir}/jenkins-encrypt.py -d -P $LOCALCLI_KEY "${file}"
 done
 rm -rf .jenkins-backup
 
