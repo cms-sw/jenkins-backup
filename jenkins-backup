@@ -157,8 +157,11 @@ if [ $(grep ':' $GIT_DIR/pluginslist.conf | wc -l) -eq 0 ] ; then
 fi
 if [ -f $script_dir/etc/default_plugins.txt ] ; then
   for ex_plugin in $(cat $script_dir/etc/default_plugins.txt) ; do
-    if [ $(grep "^${ex_plugin}:" $GIT_DIR/pluginslist.conf | wc -l) -eq 0 ] ; then
-      echo "${ex_plugin}:latest" >> $GIT_DIR/pluginslist.conf
+    pname=$(echo "${ex_plugin}" | sed 's|:.*||')
+    if [ $(grep "^${pname}:" $GIT_DIR/pluginslist.conf | wc -l) -eq 0 ] ; then
+      pversion=$(echo "${ex_plugin}" | sed 's|.*:||')
+      if [ "${pversion}" = "" ] ; then pversion="latest"; fi
+      echo "${pname}:${pversion}" >> $GIT_DIR/pluginslist.conf
     fi
   done
 fi
