@@ -176,7 +176,7 @@ done
 #Cleanup files which were encrypted but not available any more
 find $GIT_DIR/.jenkins-backup -name 'cksum' -type f | sed "s|/cksum$||;s|^$GIT_DIR/.jenkins-backup/||" | while IFS= read -r file; do
   if [ ! -e "${JENKINS_HOME}/${file}" ] ; then
-    echo rm -rf "$GIT_DIR/.jenkins-backup/${file}"
+    rm -rf "$GIT_DIR/.jenkins-backup/${file}"
   fi
 done
 
