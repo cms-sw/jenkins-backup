@@ -124,6 +124,12 @@ find ${GIT_DIR}/jobs -mindepth 2 -name 'config.xml' -type f | grep -v '/configur
   sed -i -e 's|<disabled>false|<disabled>true|' "${file}"
 done
 
+#disabled all nodes
+DISABLE_MSG="<temporaryOfflineCause class=\"hudson.slaves.OfflineCause\$UserCause\"><timestamp>$(date +%s)</timestamp><description><holder><owner>hudson.slaves.Messages</owner></holder><key>SlaveComputer.DisconnectedBy</key><args><string>localcli</string><string></string></args></description><userId>localcli</userId></temporaryOfflineCause>"
+find ${GIT_DIR}/nodes -mindepth 2 -name 'config.xml' -type f | while IFS= read -r file; do
+  sed -i -e "s|<slave>|<slave>\n  ${DISABLE_MSG}|" "${file}"
+done
+
 #Sync jenkins configuration back to jenkins home
 rsync -av --delete ${JENKINS_PLUGIN_REF}/ ${JENKINS_HOME}/plugins/
 
