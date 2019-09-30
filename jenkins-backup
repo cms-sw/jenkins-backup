@@ -131,7 +131,7 @@ for is in ${EXCLUDE_FILES} ; do rm -rf "${GIT_DIR}/${is}" ; done
 
 #Delete top level files which are not in JENKINS_HOME
 find . -maxdepth 1 -mindepth 1 -name '*' | while IFS= read -r file; do
-  [ $(echo "${file}" | grep '/\.jenkins-backup$\|/\.git$' | wc -l) -eq 1 ] && continue
+  [ $(echo "${file}" | grep '/\.jenkins-backup$\|/\.git$\|/jenkins_prefix$' | wc -l) -eq 1 ] && continue
   [ -e "${JENKINS_HOME}/${file}" ] && continue
   rm -rf "${file}"
 done
