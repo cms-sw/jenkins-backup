@@ -172,6 +172,14 @@ find $GIT_DIR/secrets -type f | sed "s|$GIT_DIR/||" | grep -v '\.conf$' >> files
 for extra in secret.key secret.key.not-so-secret ; do
   if [ -f $extra ] ; then echo $extra >> files.conf ; fi
 done
+
+#Cleanup files which were encrypted but not available any more
+find $GIT_DIR/.jenkins-backup -name 'cksum' -type f | sed "s|/cksum$||;s|^$GIT_DIR/.jenkins-backup/||" | while IFS= read -r file; do
+  if [ ! -e "${JENKINS_HOME}/${file}" ] ; then
+    echo rm -rf "$GIT_DIR/.jenkins-backup/${file}"
+  fi
+done
+
 grep -Ri '<[^>]*\(token\|pass\|secret\|api\|key\)[^>]*>\|>{[^}]*}<' --exclude-dir=.git --include='*.xml' | sed 's|.xml:.*|.xml|' | sort | uniq | while IFS= read -r file; do
   while [ $(jobs -p | wc -l) -ge ${NUM_PROC} ] ; do true ; done
   ${script_dir}/jenkins-encrypt.py ${FORCE_ENCRYPT} -p -P $LOCALCLI_KEY "${file}" &
