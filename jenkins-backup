@@ -226,6 +226,9 @@ if [ -f jenkins-backup-invalid-files.txt ] ; then
   rm -f jenkins-backup-invalid-files.txt
   exit 1
 fi
+for ex_xml in org.jenkinsci.plugins.workflow.flow.FlowExecutionList.xml queue.xml AsyncResourceDisposer.xml ; do
+  [ -e $ex_xml ] && rm -f $ex_xml
+fi
 
 if $PUSH_CHG ; then
   git add . || true
@@ -235,7 +238,7 @@ if $PUSH_CHG ; then
     let DIFF=$(date +%s)-${LAST_COMMIT_TIME} || true
     if [ $DIFF -gt $FORCE_PUSH_TIME ] ; then FORCE_PUSH=true ; fi
   fi
-  if ${FORCE_PUSH} || [ $(git diff --name-only HEAD origin/$GIT_BRANCH | grep -v '^org.jenkinsci.plugins.workflow.flow.FlowExecutionList.xml\|^queue.xml$\|^nextBuildNumber$\|AsyncResourceDisposer.xml$' | wc -l) -gt 0 ] ; then
+  if ${FORCE_PUSH} || [ $(git diff --name-only HEAD origin/$GIT_BRANCH | grep -v '^nextBuildNumber$' | wc -l) -gt 0 ] ; then
     echo ">> Files changed"
     git diff --name-only HEAD origin/$GIT_BRANCH
     git push origin $GIT_BRANCH
