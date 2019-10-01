@@ -228,7 +228,7 @@ if [ -f jenkins-backup-invalid-files.txt ] ; then
 fi
 for ex_xml in org.jenkinsci.plugins.workflow.flow.FlowExecutionList.xml queue.xml AsyncResourceDisposer.xml ; do
   [ -e $ex_xml ] && rm -f $ex_xml
-fi
+done
 
 if $PUSH_CHG ; then
   git add . || true
