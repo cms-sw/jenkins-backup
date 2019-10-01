@@ -226,7 +226,7 @@ if [ -f jenkins-backup-invalid-files.txt ] ; then
   rm -f jenkins-backup-invalid-files.txt
   exit 1
 fi
-for ex_xml in org.jenkinsci.plugins.workflow.flow.FlowExecutionList.xml queue.xml AsyncResourceDisposer.xml ; do
+for ex_xml in org.jenkinsci.plugins.workflow.flow.FlowExecutionList.xml queue.xml org.jenkinsci.plugins.resourcedisposer.AsyncResourceDisposer.xml ; do
   [ -e $ex_xml ] && rm -f $ex_xml
 done
 
