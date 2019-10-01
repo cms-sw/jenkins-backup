@@ -55,6 +55,7 @@ if [ ! -f $WORKSPACE/jenkins-cli.jar ] ; then
   /usr/bin/wget --no-check-certificate -O ${WORKSPACE}/jenkins-cli.jar "${LOCAL_JENKINS_URL}/${jenkins_prefix}/jnlpJars/jenkins-cli.jar" || true
 fi
 if [ "X$JENKINS_URL" = "X" ] ; then JENKINS_URL="http://$(hostname -f):${JENKINS_PORT}/${jenkins_prefix}" ; fi
+JENKINS_URL=$(echo "$JENKINS_URL" | sed 's|/*$||')
 branch=$(java -jar ${WORKSPACE}/jenkins-cli.jar -i $LOCALCLI_KEY -s ${LOCAL_JENKINS_URL}/${jenkins_prefix} version)
 if [ "X$branch" = "X" ] ; then
   echo "Error: Unable to find jenkins version"
