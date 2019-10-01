@@ -86,10 +86,10 @@ for k in LOCAL_JENKINS_DSA_KEY LOCAL_JENKINS_URL JENKINS_PREFIX ; do
     sed -i -e "s|@$k@|${v}|" ${GIT_DIR}/config.xml
   fi
 done
-mkdir -p ${JENKINS_HOME}/workarea/workspace
-mkdir -p ${JENKINS_HOME}/workarea/builds
-sed -i -e 's|<workspaceDir>.*</workspaceDir>|${JENKINS_HOME}/workarea/workspace/${ITEM_FULLNAME}|' ${GIT_DIR}/config.xml
-sed -i -e 's|<buildsDir>.*</buildsDir>|${JENKINS_HOME}/workarea/builds/${ITEM_FULLNAME}|' ${GIT_DIR}/config.xml
+mkdir -p ${JENKINS_HOME}/workspace
+mkdir -p ${JENKINS_HOME}/builds
+sed -i -e 's|<workspaceDir>.*</workspaceDir>|${JENKINS_HOME}/workspace/${ITEM_FULLNAME}|' ${GIT_DIR}/config.xml
+sed -i -e 's|<buildsDir>.*</buildsDir>|${JENKINS_HOME}/builds/${ITEM_FULLNAME}|' ${GIT_DIR}/config.xml
 
 #Relocate Workspace for nodes if needed
 if [ -f jenkins_prefix ] ; then
