@@ -25,14 +25,13 @@ LOCAL_JENKINS_URL=http://localhost:${JENKINS_PORT}
 export JENKINS_PLUGIN_REF="${BACKUP_REF_DIR}/plugins"
 script_dir=$(cd $(dirname $0); /bin/pwd)
 jenkins_prefix=""
+
+if [ "X$JENKINS_URL" = "X" ] ; then JENKINS_URL="http://$(hostname -f):${JENKINS_PORT}" ; fi
 if [ -f ${JENKINS_HOME}/jenkins_prefix ] ; then
   jenkins_prefix=$(cat ${JENKINS_HOME}/jenkins_prefix)
-  if [ "${jenkins_prefix}" = "" ] ; then
-    echo "ERROR: Empty ${JENKINS_HOME}/jenkins_prefix. Please populate it with jenkins prefix e.g. jenkins and then run"
-    exit 1
-  fi
+  JENKINS_URL="${JENKINS_URL}/${jenkins_prefix}"
 fi
-if [ "X$JENKINS_URL" = "X" ] ; then JENKINS_URL="http://$(hostname -f):${JENKINS_PORT}/${jenkins_prefix}" ; fi
+
 branch=$(java -jar ${JENKINS_HOME}/jenkins-cli.jar -i $LOCALCLI_KEY -s ${LOCAL_JENKINS_URL}/${jenkins_prefix} version)
 if [ "X$branch" = "X" ] ; then
   echo "Error: Unable to find jenkins version"
@@ -87,6 +86,11 @@ for k in LOCAL_JENKINS_DSA_KEY LOCAL_JENKINS_URL JENKINS_PREFIX ; do
     sed -i -e "s|@$k@|${v}|" ${GIT_DIR}/config.xml
   fi
 done
+mkdir -p ${JENKINS_HOME}/workarea/workspace
+mkdir -p ${JENKINS_HOME}/workarea/builds
+sed -i -e 's|<workspaceDir>.*</workspaceDir>|${JENKINS_HOME}/workarea/workspace/${ITEM_FULLNAME}|' ${GIT_DIR}/config.xml
+sed -i -e 's|<buildsDir>.*</buildsDir>|${JENKINS_HOME}/workarea/builds/${ITEM_FULLNAME}|' ${GIT_DIR}/config.xml
+
 #Relocate Workspace for nodes if needed
 if [ -f jenkins_prefix ] ; then
   old_jenkins_prefix=$(cat jenkins_prefix)
