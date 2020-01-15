@@ -1,4 +1,4 @@
-#!/bin/bash -eu
+#!/bin/bash -eux
 set -o pipefail
 
 export REF_DIR=${JENKINS_PLUGIN_REF:-/var/lib/jenkins/plugin-ref/plugins}
