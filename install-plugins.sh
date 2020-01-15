@@ -203,9 +203,13 @@ while [ -s $DEPS ] ; do
   rm -f ${DEPS}.uniq
   touch ${DEPS}.uniq
   for p in $(cat $DEPS | sed -e 's|:.*$||' | sort -u) ; do
-    list_ver=$(grep "^$p:" $PLUGIN_LIST | sed -e 's|.*:||' | sort -V | tail -1)
-    max_ver1=$(grep "^$p:" $DEPS | sed -e 's|.*:||' | sort -V | tail -1)
-    max_ver=$(echo -e "$list_ver\n$max_ver1" | sort -V | tail -1)
+    list_ver=$(grep "^$p:" $PLUGIN_LIST | sed -e 's|.*:||' | sort -V | tail -1 || true)
+    if [ "$list_ver" = "" ] ; then
+      max_ver="latest"
+    else
+      max_ver1=$(grep "^$p:" $DEPS | sed -e 's|.*:||' | sort -V | tail -1)
+      max_ver=$(echo -e "$list_ver\n$max_ver1" | sort -V | tail -1)
+    fi
     echo "$p:$max_ver" >>  ${DEPS}.uniq
   done
   main "${DEPS}.uniq"
