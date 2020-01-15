@@ -3,6 +3,7 @@ REPO=""
 DEFAULT_BRANCH=master
 LOCALCLI_KEY=${HOME}/.ssh/id_dsa
 BACKUP_REF_DIR="$(/bin/pwd)/plugin-ref"
+LATEST_PLUGINS=false
 while [[ $# -gt 0 ]] ; do
   opt=$1; shift
   case $opt in
@@ -13,6 +14,7 @@ while [[ $# -gt 0 ]] ; do
     -K|--kinit)      KINIT=$1; shift ;;
     -u|--jenkins-url)JENKINS_URL=$1; shift;;
     -w|--workspace)  BACKUP_REF_DIR=$1; shift;;
+    -L|--latest-plugins) LATEST_PLUGINS=true ;;
   esac
 done
 if [ "X$JENKINS_HOME" = "X" ] ; then JENKINS_HOME=/var/lib/jenkins ; fi
@@ -119,6 +121,8 @@ rm -rf $GIT_DIR/plugins-filter.conf && touch $GIT_DIR/plugins-filter.conf
 for p in $(cat $GIT_DIR/plugins-used.conf | sort -u) ; do
   grep "^$p:" $GIT_DIR/pluginslist.conf >> $GIT_DIR/plugins-filter.conf || true
 done
+if $LATEST_PLUGINS ; then sed -i -e 's|:.*|:latest|' $GIT_DIR/plugins-filter.conf ; fi
+
 rm -rf ${JENKINS_PLUGIN_REF}/*.lock
 ${script_dir}/install-plugins.sh $GIT_DIR/pluginslist.conf $GIT_DIR/plugins-filter.conf
 rm -rf ${JENKINS_PLUGIN_REF}/tmp ${JENKINS_PLUGIN_REF}/deps-plugins.txt ${JENKINS_PLUGIN_REF}/deps-plugins.txt.uniq
