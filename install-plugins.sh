@@ -190,7 +190,6 @@ main() {
     echo "${bundledPlugins}"
     if [[ -f $FAILED ]]; then
         echo "Some plugins failed to download!" "$(<"$FAILED")" >&2
-        rm -f $FAILED
         rm -rf "$REF_DIR/*.lock"
         exit 1
     fi
