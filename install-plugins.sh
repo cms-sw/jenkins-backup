@@ -33,7 +33,6 @@ download() {
           echo "Failed to download plugin: $plugin or ${plugin}-plugin" >&2
           echo "Not downloaded: ${plugin}" >> "$FAILED"
           rm -f "$jpi"
-          if [ $(echo ' copy-to-slave ' | grep " $plugin " | wc -l) -gt 0 ] ; then return 0; fi
           return 1
         fi
       fi
