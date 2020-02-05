@@ -49,7 +49,9 @@ def do_enc(opts, infile, cdir):
   dfile = join(cdir,'config')
   ncksum = cmd("sha256sum -b '%s' | sed 's| .*||'" % infile).strip('\n')
   if not opts.force and exists(sfile):
-    ocksum = open(sfile).readline().strip('\n')
+    ocksum = ""
+    with open(sfile) as ref:
+      ocksum = ref.readline().strip('\n')
     if (ncksum==ocksum) and exists(efile):
       cmd("cp -f '%s' '%s'" % (efile, infile))
       return -1
@@ -91,16 +93,14 @@ def do_enc(opts, infile, cdir):
   if mnum==0:
     cmd("rm -rf '%s'" % cdir)
     return 0
-  xfile = open(infile, 'w')
-  for l in lines: xfile.write(l)
-  xfile.close()
+  with open(infile, 'w') as xfile:
+    for l in lines: xfile.write(l)
   cmd("mkdir -p '%s'" % cdir)
-  xfile=open(dfile, 'w')
-  c=-1
-  for d in data:
-    c+=1
-    for x in d.split('\n'): xfile.write('%s:%s\n' % (c,x))
-  xfile.close()
+  with open(dfile, 'w') as xfile:
+    c=-1
+    for d in data:
+      c+=1
+      for x in d.split('\n'): xfile.write('%s:%s\n' % (c,x))
   cmd("cp -f '%s' '%s' && echo '%s' > '%s'" % (infile, efile, ncksum, sfile))
   return mnum
 
@@ -110,26 +110,23 @@ def do_dec(opts, infile, cdir):
     convert_file('-d', opts.passfile, infile, infile)
     cmd("rm -rf '%s'" % cdir)
     return 1
-  xfile = open(infile)
-  lines = xfile.readlines()
-  xfile.close()
-  xfile = open(dfile)
-  data={}
-  for l in xfile.readlines():
-    i,d = l.split(":",1)
-    if not i in data: data[i]=[]
-    data[i].append(d)
-  xfile.close()
-  xfile = open(infile, 'w')
-  exp =re.compile('^(.*)@JENKINS_BACKUP_([0-9]+)@(.*)')
-  for l in lines:
-    m = exp.match(l)
-    if m:
-      x = ''.join(data[m.group(2)])
-      d = convert_string('-d',opts.passfile,x)
-      l='%s%s%s\n' % (m.group(1),d,m.group(3))
-    xfile.write(l)
-  xfile.close()
+  with open(infile) as xfile:
+    lines = xfile.readlines()
+  with open(dfile) as xfile:
+    data={}
+    for l in xfile.readlines():
+      i,d = l.split(":",1)
+      if not i in data: data[i]=[]
+      data[i].append(d)
+  with open(infile, 'w') as xfile:
+    exp =re.compile('^(.*)@JENKINS_BACKUP_([0-9]+)@(.*)')
+    for l in lines:
+      m = exp.match(l)
+      if m:
+        x = ''.join(data[m.group(2)])
+        d = convert_string('-d',opts.passfile,x)
+        l='%s%s%s\n' % (m.group(1),d,m.group(3))
+      xfile.write(l)
   cmd("rm -rf '%s'" % cdir)
   return 1
 
