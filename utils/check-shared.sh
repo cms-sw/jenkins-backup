@@ -2,14 +2,14 @@
 DISCONNECT=false
 WAIT_TIME=300
 NODE="*"
-KEY="MULTI_MASTER_SLAVE"
+SHARED_KEY="MULTI_MASTER_SLAVE"
 while [[ $# -gt 0 ]] ; do
   opt=$1; shift
   case $opt in
     -n|--node)         NODE="$1"; shift ;;
     -w|--wait-time)    WAIT_TIME=$1; shift ;;
     -d|--disconnect)   DISCONNECT=true ;;
-    -k|--key)          KEY=$1; shift ;;
+    -k|--key)          SHARED_KEY=$1; shift ;;
   esac
 done
 if [ ${WAIT_TIME} -lt 60 ] ; then WAIT_TIME=60; fi
@@ -18,7 +18,7 @@ mkdir -p nodes errors
 JENKINS_PORT=$(pgrep -x -a  -f ".*httpPort=.*" | tail -1 | tr ' ' '\n' | grep httpPort | sed 's|.*=||')
 LOCAL_URL=$(echo $HUDSON_URL | sed 's|https://[^/]*/|http://localhost:${JENKINS_PORT}/|')
 ERR=0
-for n in $(grep -H "${key}" $HOME/nodes/${NODE}/config.xml 2>/dev/null  | sed 's|/config.xml *:.*||;s|.*/||') ; do
+for n in $(grep -H "${SHARED_KEY}" $HOME/nodes/${NODE}/config.xml 2>/dev/null  | sed 's|/config.xml *:.*||;s|.*/||') ; do
   echo "Working on $n ..."
   curl -s "${LOCAL_URL}/computer/$n/api/json?pretty=true" > data
   cleanup=true
