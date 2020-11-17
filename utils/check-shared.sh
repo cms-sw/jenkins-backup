@@ -16,7 +16,7 @@ if [ ${WAIT_TIME} -lt 60 ] ; then WAIT_TIME=60; fi
 rm -rf errors
 mkdir -p nodes errors
 JENKINS_PORT=$(pgrep -x -a  -f ".*httpPort=.*" | tail -1 | tr ' ' '\n' | grep httpPort | sed 's|.*=||')
-LOCAL_URL=$(echo $HUDSON_URL | sed 's|https://[^/]*/|http://localhost:${JENKINS_PORT}/|')
+LOCAL_URL=$(echo $HUDSON_URL | sed "s|https://[^/]*/|http://localhost:${JENKINS_PORT}/|")
 ERR=0
 for n in $(grep -H "${SHARED_KEY}" $HOME/nodes/${NODE}/config.xml 2>/dev/null  | sed 's|/config.xml *:.*||;s|.*/||') ; do
   echo "Working on $n ..."
