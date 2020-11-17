@@ -13,8 +13,7 @@ while [[ $# -gt 0 ]] ; do
   esac
 done
 if [ ${WAIT_TIME} -lt 60 ] ; then WAIT_TIME=60; fi
-rm -rf errors
-mkdir -p nodes errors
+mkdir -p nodes
 JENKINS_PORT=$(pgrep -x -a  -f ".*httpPort=.*" | tail -1 | tr ' ' '\n' | grep httpPort | sed 's|.*=||')
 LOCAL_URL=$(echo $HUDSON_URL | sed "s|https://[^/]*/|http://localhost:${JENKINS_PORT}/|")
 ERR=0
@@ -33,12 +32,10 @@ for n in $(grep -H "${SHARED_KEY}" $HOME/nodes/${NODE}/config.xml 2>/dev/null  |
         if [ $age -gt ${WAIT_TIME} ] ; then
           if [ $(curl -s -H "ADFS_LOGIN: localcli" "${LOCAL_URL}/computer/$n/api/json?pretty=true" | grep '"idle"' | grep "true" |wc -l) -gt 0 ] ; then
             echo "  Disconnecting $n"
-            ERR="${ERR} $n"
             if $DISCONNECT ; then
               ${JENKINS_CLI_CMD} disconnect-node "$n"
             else
               ERR=1
-              touch errors/$n
             fi
           fi
           rm -f nodes/$n
