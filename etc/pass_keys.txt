@@ -1,6 +1,6 @@
 >@JENKINS_BACKUP_[0-9]*@<
 <key\|overrideKey\|keyfile\|keyPath>
-<apiTokenId\|serverAPIUrl\|apiUrl\|apiRateLimitChecker>
+<apiTokenId\|serverAPIUrl\|apiUrl\|apiUri\|apiRateLimitChecker>
 <privateKeyFile\|authorizedKeys\|privateKeyLocation>
 <passwordVariable>
 <tokenUuid>
