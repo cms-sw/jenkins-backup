@@ -14,6 +14,7 @@ while [[ $# -gt 0 ]] ; do
 done
 if [ ${WAIT_TIME} -lt 60 ] ; then WAIT_TIME=60; fi
 mkdir -p nodes
+LOGIN_HEADER=$(grep '<forwardedUser>' $HOME/config.xml  | sed 's|.*<forwardedUser>||;s|<.*||')
 JENKINS_PORT=$(pgrep -x -a  -f ".*httpPort=.*" | tail -1 | tr ' ' '\n' | grep httpPort | sed 's|.*=||')
 LOCAL_URL=$(echo $HUDSON_URL | sed "s|https://[^/]*/|http://localhost:${JENKINS_PORT}/|")
 ERR=0
@@ -30,9 +31,10 @@ for n in $(grep -H "${SHARED_KEY}" $HOME/nodes/${NODE}/config.xml 2>/dev/null  |
         let age=$(date +%s)-$(date +%s -r "nodes/$n") || true
         echo "  Time since idle: ${age}s"
         if [ $age -gt ${WAIT_TIME} ] ; then
-          if [ $(curl -s -H "ADFS_LOGIN: localcli" "${LOCAL_URL}/computer/$n/api/json?pretty=true" | grep '"idle"' | grep "true" |wc -l) -gt 0 ] ; then
+          if [ $(curl -s -H "${LOGIN_HEADER}: localcli" "${LOCAL_URL}/computer/$n/api/json?pretty=true" | grep '"idle"' | grep "true" |wc -l) -gt 0 ] ; then
             echo "  Disconnecting $n"
             if $DISCONNECT ; then
+              echo "Running: ${JENKINS_CLI_CMD} disconnect-node $n"
               ${JENKINS_CLI_CMD} disconnect-node "$n"
             else
               ERR=1
