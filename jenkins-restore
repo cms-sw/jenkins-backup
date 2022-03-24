@@ -1,5 +1,4 @@
 #!/bin/bash -ex
-cd /tmp
 REPO=""
 DEFAULT_BRANCH=master
 USE_BACKUP=false
@@ -47,6 +46,7 @@ GIT_BRANCH=${jenkins_prefix}${branch}
 GIT_DIR=${BACKUP_REF_DIR}/${GIT_BRANCH}
 KR5_FILE=""
 mkdir -p "${BACKUP_REF_DIR}"
+cd "${BACKUP_REF_DIR}"
 if [ "X$KINIT" != "X" ] ; then
   KR5_FILE=${BACKUP_REF_DIR}/krb5cc_$(whoami)
   export KRB5CCNAME=FILE:${KR5_FILE}
