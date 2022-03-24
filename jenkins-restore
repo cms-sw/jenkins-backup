@@ -1,9 +1,10 @@
 #!/bin/bash -ex
+cd /tmp
 REPO=""
 DEFAULT_BRANCH=master
 USE_BACKUP=false
 LOCALCLI_KEY=${HOME}/.ssh/id_dsa
-BACKUP_REF_DIR="$(/bin/pwd)/plugin-ref"
+BACKUP_REF_DIR="${HOME}/plugin-ref"
 LATEST_PLUGINS=false
 while [[ $# -gt 0 ]] ; do
   opt=$1; shift
