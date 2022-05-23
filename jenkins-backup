@@ -49,6 +49,8 @@ if [ -e ${JENKINS_HOME}/jenkins_prefix ] ; then
     exit 1
   fi
 fi
+SSHD_PORT=$(grep '<port>' $JENKINS_HOME/org.jenkinsci.main.modules.sshd.SSHD.xml | sed 's|</.*||;s|.*>||')
+JENKINS_CLI_CMD="ssh -o IdentitiesOnly=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i $LOCALCLI_KEY -l localcli -p ${SSHD_PORT} localhost"
 JENKINS_PORT=$(pgrep -x -a  -f ".*httpPort=.*" | tail -1 | tr ' ' '\n' | grep httpPort | sed 's|.*=||')
 LOCAL_JENKINS_URL=http://localhost:${JENKINS_PORT}
 if [ ! -f $WORKSPACE/jenkins-cli.jar ] ; then
@@ -56,7 +58,7 @@ if [ ! -f $WORKSPACE/jenkins-cli.jar ] ; then
 fi
 if [ "X$JENKINS_URL" = "X" ] ; then JENKINS_URL="http://$(hostname -f):${JENKINS_PORT}/${jenkins_prefix}" ; fi
 JENKINS_URL=$(echo "$JENKINS_URL" | sed 's|/*$||')
-branch=$(java -jar ${WORKSPACE}/jenkins-cli.jar -i $LOCALCLI_KEY -s ${LOCAL_JENKINS_URL}/${jenkins_prefix} version)
+branch=$(${JENKINS_CLI_CMD} version)
 if [ "X$branch" = "X" ] ; then
   echo "Error: Unable to find jenkins version"
   exit 1
