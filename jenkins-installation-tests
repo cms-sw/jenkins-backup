@@ -1,8 +1,9 @@
 #!/bin/bash -ex
 JENKINS_HOME=$1
+DSA_KEY=$(grep LOCAL_JENKINS_DSA_KEY -A1 $JENKINS_HOME/config.xml | tail -1 | sed 's|.*<string>||;s|<.*||;s|.*/||')
 SSHD_PORT=$(grep '<port>' $JENKINS_HOME/org.jenkinsci.main.modules.sshd.SSHD.xml | sed 's|</.*||;s|.*>||')
 sed -i -e 's|<disabled>true|<disabled>false|' ${JENKINS_HOME}/jobs/jenkins-disable-nodes/config.xml
-JENKINS_CLI="ssh -o IdentitiesOnly=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i ${JENKINS_HOME}/.ssh/id_dsa -l localcli -p ${SSHD_PORT} localhost"
+JENKINS_CLI="ssh -o IdentitiesOnly=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i ${JENKINS_HOME}/.ssh/${DSA_KEY} -l localcli -p ${SSHD_PORT} localhost"
 $JENKINS_CLI reload-job jenkins-disable-nodes
 if [ "$2" != "no" ] ; then
   $JENKINS_CLI build jenkins-disable-nodes -p NODES_FILTER='.*'
