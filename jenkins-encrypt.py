@@ -8,6 +8,7 @@ from commands import getstatusoutput as run_cmd
 def cmd(cmd2run):
   e, o = run_cmd(cmd2run)
   if e:
+    print "ERROR: ",cmd2run
     print o
     sys.exit(1)
   return o
