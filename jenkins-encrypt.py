@@ -14,7 +14,7 @@ def cmd(cmd2run):
   return o
 
 def convert_string(xtype, passfile, data):
-  return cmd("echo -en '%s\n' | openssl enc %s -a -base64 -aes-256-cbc -salt -pass file:%s" % (data, xtype, passfile)).strip('\n')
+  return cmd("echo '%s' | openssl enc %s -a -base64 -aes-256-cbc -salt -pass file:%s" % (data.strip('\n'), xtype, passfile)).strip('\n')
 
 def convert_file(xtype, passfile, infile, outfile):
   cmd("openssl enc %s -a -base64 -aes-256-cbc -salt -in '%s' -out '%s.tmp' -pass file:%s" % (xtype, infile, outfile, passfile))
@@ -66,7 +66,6 @@ def do_enc(opts, infile, cdir):
   xfile = open(infile)
   mdata=["","",""]
   for l in xfile.readlines():
-    l = l.strip('\n')
     if mdata[0]:
       m = opts.mkeywords[mdata[0]].match(l)
       if not m:
@@ -125,7 +124,7 @@ def do_dec(opts, infile, cdir):
     for l in lines:
       m = exp.match(l)
       if m:
-        x = ''.join(data[m.group(2)]).strip('\n')
+        x = ''.join(data[m.group(2)])
         d = convert_string('-d',opts.passfile,x)
         l='%s%s%s\n' % (m.group(1),d,m.group(3))
       xfile.write(l)
