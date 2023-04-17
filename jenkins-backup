@@ -49,7 +49,7 @@ if [ -e ${JENKINS_HOME}/jenkins_prefix ] ; then
     exit 1
   fi
 fi
-SSHD_PORT=$(grep '<port>' $JENKINS_HOME/org.jenkinsci.main.modules.sshd.SSHD.xml | sed 's|</.*||;s|.*>||')
+SSHD_PORT=$(grep -a '<port>' $JENKINS_HOME/org.jenkinsci.main.modules.sshd.SSHD.xml | sed 's|</.*||;s|.*>||')
 JENKINS_CLI_CMD="ssh -o IdentitiesOnly=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i $LOCALCLI_KEY -l localcli -p ${SSHD_PORT} localhost"
 JENKINS_PORT=$(pgrep -x -a  -f ".*httpPort=.*" | tail -1 | tr ' ' '\n' | grep httpPort | sed 's|.*=||')
 LOCAL_JENKINS_URL=http://localhost:${JENKINS_PORT}
@@ -152,7 +152,7 @@ for f in $(grep -a "${JENKINS_URL}" ${GIT_DIR}/*.xml | sed 's|.xml:.*|.xml|' | s
 done
 
 #Generate plugin list
-SSHD_PORT=$(grep '<port>' $JENKINS_HOME/org.jenkinsci.main.modules.sshd.SSHD.xml | sed 's|</.*||;s|.*>||')
+SSHD_PORT=$(grep -a '<port>' $JENKINS_HOME/org.jenkinsci.main.modules.sshd.SSHD.xml | sed 's|</.*||;s|.*>||')
 JENKINS_CLI_CMD="ssh -o IdentitiesOnly=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i $LOCALCLI_KEY -l localcli -p ${SSHD_PORT} localhost"
 cat $script_dir/get_plugins.groovy | ${JENKINS_CLI_CMD} groovy = | grep -v 'scriptler' | sort > $GIT_DIR/pluginslist.conf
 if [ $(grep ':' $GIT_DIR/pluginslist.conf | wc -l) -eq 0 ] ; then
