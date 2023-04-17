@@ -14,7 +14,7 @@ def cmd(cmd2run):
   return o
 
 def convert_string(xtype, passfile, data):
-  return cmd("echo -en '%s' | openssl enc %s -a -base64 -aes-256-cbc -salt -pass file:%s" % (data, xtype, passfile)).strip('\n')
+  return cmd("echo -en '%s\n' | openssl enc %s -a -base64 -aes-256-cbc -salt -pass file:%s" % (data, xtype, passfile)).strip('\n')
 
 def convert_file(xtype, passfile, infile, outfile):
   cmd("openssl enc %s -a -base64 -aes-256-cbc -salt -in '%s' -out '%s.tmp' -pass file:%s" % (xtype, infile, outfile, passfile))
