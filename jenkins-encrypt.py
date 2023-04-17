@@ -13,10 +13,10 @@ def cmd(cmd2run):
   return o
 
 def convert_string(xtype, passfile, data):
-  return cmd("echo -n '%s' | openssl enc %s -md sha256 -a -base64 -aes-256-cbc -salt -pass file:%s" % (data, xtype, passfile)).strip('\n')
+  return cmd("echo -n '%s' | openssl enc %s -md sha256 -a -base64 -aes-256-cbc -nopad -salt -pass file:%s" % (data, xtype, passfile)).strip('\n')
 
 def convert_file(xtype, passfile, infile, outfile):
-  cmd("openssl enc %s -md sha256 -a -base64 -aes-256-cbc -salt -in '%s' -out '%s.tmp' -pass file:%s" % (xtype, infile, outfile, passfile))
+  cmd("openssl enc %s -md sha256 -a -base64 -aes-256-cbc -nopad -salt -in '%s' -out '%s.tmp' -pass file:%s" % (xtype, infile, outfile, passfile))
   cmd ("mv '%s.tmp' '%s'" % (outfile, outfile))
   return True
 
