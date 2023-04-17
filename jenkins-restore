@@ -82,11 +82,11 @@ done
 rm -f nextBuildNumber
 
 #Relocate jenkins parameters
-for f in $(grep "@JENKINS_URL@" ${GIT_DIR}/*.xml | sed 's|.xml:.*|.xml|' | sort | uniq) ; do
+for f in $(grep -a "@JENKINS_URL@" ${GIT_DIR}/*.xml | sed 's|.xml:.*|.xml|' | sort | uniq) ; do
   sed -i -e "s|@JENKINS_URL@|${JENKINS_URL}|" $f
 done
 for k in LOCAL_JENKINS_DSA_KEY LOCAL_JENKINS_URL JENKINS_PREFIX ; do
-  if [ $(grep "@$k@" ${GIT_DIR}/config.xml | wc -l) -gt 0 ] ; then
+  if [ $(grep -a "@$k@" ${GIT_DIR}/config.xml | wc -l) -gt 0 ] ; then
     v=""
     case $k in
       JENKINS_PREFIX)        v="${jenkins_prefix}" ;;
@@ -118,7 +118,7 @@ sed -i -e "s|<numExecutors>[0-9]*</numExecutors>|<numExecutors>${MASTER_EXEC}</n
 #Find jenkins plugins in use
 rm -f $GIT_DIR/plugins-used.conf ; touch $GIT_DIR/plugins-used.conf
 find $GIT_DIR -name '*.xml' -type f | while IFS= read -r file; do
-  (grep ' plugin=' "${file}" | sed 's|.* plugin="||;s|@.*||' | grep -v '^pipeline-' || true) >> $GIT_DIR/plugins-used.conf
+  (grep -a ' plugin=' "${file}" | sed 's|.* plugin="||;s|@.*||' | grep -v '^pipeline-' || true) >> $GIT_DIR/plugins-used.conf
 done
 
 #Force install default plugins
