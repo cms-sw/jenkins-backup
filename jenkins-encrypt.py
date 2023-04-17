@@ -124,7 +124,7 @@ def do_dec(opts, infile, cdir):
     for l in lines:
       m = exp.match(l)
       if m:
-        x = ''.join(data[m.group(2)])
+        x = ''.join(data[m.group(2)]).strip('\n')
         d = convert_string('-d',opts.passfile,x)
         l='%s%s%s\n' % (m.group(1),d,m.group(3))
       xfile.write(l)
