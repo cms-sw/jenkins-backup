@@ -66,6 +66,7 @@ def do_enc(opts, infile, cdir):
   xfile = open(infile)
   mdata=["","",""]
   for l in xfile.readlines():
+    l = l.strip('\n')
     if mdata[0]:
       m = opts.mkeywords[mdata[0]].match(l)
       if not m:
