@@ -1,4 +1,4 @@
-#!/bin/bash -ex
+#!/bin/bash -e
 FORCE_ENC=false
 PUSH_CHG=false
 FORCE_PUSH=false
