@@ -25,6 +25,7 @@ if [ "X${REPO}" = "X" ] ; then
   exit 1
 fi
 JENKINS_PORT=$(pgrep -x -a  -f ".*httpPort=.*" | tail -1 | tr ' ' '\n' | grep httpPort | sed 's|.*=||')
+JAVA_CMD=$(pgrep -x -a  -f ".*httpPort=.*" | tail -1 | tr ' ' '\n' | grep java | head -1)
 LOCAL_JENKINS_URL=http://localhost:${JENKINS_PORT}
 export JENKINS_PLUGIN_REF="${BACKUP_REF_DIR}/plugins"
 script_dir=$(cd $(dirname $0); /bin/pwd)
@@ -37,7 +38,7 @@ if [ -f ${JENKINS_HOME}/jenkins_prefix ] ; then
   JENKINS_URL="${JENKINS_URL}/${jenkins_prefix}"
 fi
 
-branch=$(java -jar ${JENKINS_HOME}/jenkins-cli.jar -i $LOCALCLI_KEY -s ${LOCAL_JENKINS_URL}/${jenkins_prefix} version)
+branch=$(${JAVA_CMD} -jar ${JENKINS_HOME}/jenkins-cli.jar -i $LOCALCLI_KEY -s ${LOCAL_JENKINS_URL}/${jenkins_prefix} version)
 if [ "X$branch" = "X" ] ; then
   echo "Error: Unable to find jenkins version"
   exit 1
