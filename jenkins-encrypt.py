@@ -1,15 +1,25 @@
-#!/usr/bin/python
+#!/bin/bash
+
+""":"
+python_cmd="/usr/bin/python"
+/usr/bin/python3 -V >/dev/null 2>&1 && python_cmd="/usr/bin/python3"
+exec ${python_cmd} $0 ${1+"$@"}
+"""
+
 import re, sys
 from os.path import expanduser, exists, join, dirname, abspath
 from os import getcwd
 from hashlib import md5
-from commands import getstatusoutput as run_cmd
+if sys.version_info[0] == 2:
+  from commands import getstatusoutput as run_cmd
+else:
+  from subprocess import getstatusoutput as run_cmd
 
 def cmd(cmd2run):
   e, o = run_cmd(cmd2run)
   if e:
-    print "ERROR: ",cmd2run
-    print o
+    print ("ERROR: %s" % cmd2run)
+    print (o)
     sys.exit(1)
   return o
 
@@ -35,14 +45,14 @@ def process(opts, infiles):
   cwd = abspath(getcwd())+"/"
   for infile in [abspath(f) for f in infiles]:
     if not infile.startswith(cwd):
-      print "ERROR: Invalid file, not available in current working directory: ",infile
+      print ("ERROR: Invalid file, not available in current working directory: %s" % infile)
       sys.exit(1)
     infile = infile.replace(cwd, "")
     cdir = '%s/%s' % (opts.cache_dir, infile)
     res = 0
     if opts.decrypt: res = do_dec(opts, infile, cdir)
     else:            res = do_enc(opts, infile, cdir)
-    if res>0: print "Processed ",res,infile
+    if res>0: print ("Processed %s %s" % (res,infile))
 
 def do_enc(opts, infile, cdir):
   efile = join(cdir,'data')
