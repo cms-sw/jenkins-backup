@@ -29,7 +29,7 @@ def get_rhel_version():
   return int(cmd("grep '^%rhel ' /etc/rpm/macros.dist | sed 's|.* ||'"))
 
 def convert_string(xtype, passfile, data):
-  return cmd("echo '%s' | openssl enc %s -a -base64 -aes-256-cbc -md sha512 -salt %s -pass file:%s" % (data, xtype, openssl_opt, passfile)).strip('\n')
+  return cmd("echo '%s' | openssl enc %s -a -base64 -aes-256-cbc -md sha512 -salt %s -pass file:%s 2>/dev/null" % (data, xtype, openssl_opt, passfile)).strip('\n')
 
 def convert_file(xtype, passfile, infile, outfile):
   cmd("openssl enc %s -a -base64 -aes-256-cbc -md sha512 -salt -in '%s' -out '%s.tmp' %s -pass file:%s" % (xtype, infile, outfile, openssl_opt, passfile))
@@ -167,7 +167,14 @@ if __name__ == "__main__":
   opts.passfile = expanduser(opts.passfile)
   if not exists (opts.passfile): parser.error("No such file: %s" % opts.passfile)
   if not exists (opts.cache_dir): cmd('mkdir -p %s' % opts.cache_dir)
+  pbkdf2_file = "%s/.pbkdf2.txt" % opts.cache_dir
+  if not opts.decrypt:
+    if openssl_opt:
+      cmd("touch %s" % pbkdf2_file)
+    else:
+      cmd("rm -f %s" % pbkdf2_file)
   if opts.decrypt:
+    if not exists(pbkdf2_file): openssl_opt=""
     opts.keywords = list(set(opts.keywords+default_keys))
     opts.mkeywords = list(set(opts.mkeywords+default_multikeys))
   process(opts, args)
