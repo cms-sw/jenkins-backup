@@ -1,5 +1,5 @@
 #!/bin/bash -ex
-[ "${HOME}" != "" ] || export HOME="/var/lin/jenkins"
+[ "${HOME}" != "" ] || export HOME="/var/lib/jenkins"
 REPO=""
 DEFAULT_BRANCH=master
 USE_BACKUP=false
