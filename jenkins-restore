@@ -54,6 +54,7 @@ if [ "X$KINIT" != "X" ] ; then
   kinit $(echo $KINIT | cut -d: -f1) -k -t $(echo $KINIT | cut -d: -f2)
 fi
 rm -rf $GIT_DIR
+git config --global http.emptyAuth true
 git clone $REPO $GIT_DIR
 cd $GIT_DIR
 if $USE_BACKUP ; then
