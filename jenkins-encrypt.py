@@ -15,6 +15,8 @@ if sys.version_info[0] == 2:
 else:
   from subprocess import getstatusoutput as run_cmd
 
+openssl_opt = ""
+
 def cmd(cmd2run):
   e, o = run_cmd(cmd2run)
   if e:
@@ -23,11 +25,14 @@ def cmd(cmd2run):
     sys.exit(1)
   return o
 
+def get_rhel_version():
+  return int(cmd("grep '^%rhel ' /etc/rpm/macros.dist | sed 's|.* ||'"))
+
 def convert_string(xtype, passfile, data):
-  return cmd("echo '%s' | openssl enc %s -a -base64 -aes-256-cbc -salt -pass file:%s" % (data, xtype, passfile)).strip('\n')
+  return cmd("echo '%s' | openssl enc %s -a -base64 -aes-256-cbc -md sha512 -salt %s -pass file:%s" % (data, xtype, openssl_opt, passfile)).strip('\n')
 
 def convert_file(xtype, passfile, infile, outfile):
-  cmd("openssl enc %s -a -base64 -aes-256-cbc -salt -in '%s' -out '%s.tmp' -pass file:%s" % (xtype, infile, outfile, passfile))
+  cmd("openssl enc %s -a -base64 -aes-256-cbc -md sha512 -salt -in '%s' -out '%s.tmp' %s -pass file:%s" % (xtype, infile, outfile, openssl_opt, passfile))
   cmd ("mv '%s.tmp' '%s'" % (outfile, outfile))
   return True
 
@@ -156,7 +161,7 @@ if __name__ == "__main__":
   parser.add_option("-P", dest="passfile",  help="Passfile to use to encrypt/decrypt data.", type=str, default='~/.ssh/id_dsa')
   parser.add_option("-c", dest="cache_dir", help="Jenkins backup cache directory", type=str, default='.jenkins-backup')
   opts, args = parser.parse_args()
-
+  if get_rhel_version()>7: openssl_opt="-pbkdf2"
   if len(args) == 0: parser.error("Missing input file name.")
   opts.passfile = expanduser(opts.passfile)
   if not exists (opts.passfile): parser.error("No such file: %s" % opts.passfile)
