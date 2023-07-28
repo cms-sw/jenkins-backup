@@ -162,6 +162,7 @@ if __name__ == "__main__":
   parser.add_option("-c", dest="cache_dir", help="Jenkins backup cache directory", type=str, default='.jenkins-backup')
   opts, args = parser.parse_args()
   if get_rhel_version()>7: openssl_opt="-pbkdf2"
+  print("OpenSSL Option: %s" % openssl_opt)
   if len(args) == 0: parser.error("Missing input file name.")
   opts.passfile = expanduser(opts.passfile)
   if not exists (opts.passfile): parser.error("No such file: %s" % opts.passfile)
