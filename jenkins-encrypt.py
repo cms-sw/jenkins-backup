@@ -26,7 +26,8 @@ def cmd(cmd2run):
   return o
 
 def get_rhel_version():
-  return int(cmd("grep '^%rhel ' /etc/rpm/macros.dist | sed 's|.* ||'"))
+  macros_file = "/usr/lib/rpm/macros.d/macros.dist" if exists("/usr/lib/rpm/macros.d/macros.dist") else "/etc/rpm/macros.dist"
+  return int(cmd("grep '^%rhel ' " + macros_file + " | sed 's|.* ||'"))
 
 def convert_string(xtype, passfile, data):
   return cmd("echo '%s' | openssl enc %s -a -base64 -aes-256-cbc -md sha512 -salt %s -pass file:%s 2>/dev/null" % (data, xtype, openssl_opt, passfile)).strip('\n')
