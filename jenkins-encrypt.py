@@ -1,8 +1,8 @@
 #!/bin/bash
 
 """:"
-python_cmd="/usr/bin/python"
-/usr/bin/python3 -V >/dev/null 2>&1 && python_cmd="/usr/bin/python3"
+python_cmd="/usr/bin/python3"
+/usr/bin/python -V >/dev/null 2>&1 && python_cmd="/usr/bin/python"
 exec ${python_cmd} $0 ${1+"$@"}
 """
 
