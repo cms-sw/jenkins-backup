@@ -1,3 +1,2 @@
 reverse-proxy-auth-plugin
 matrix-auth
-multi-slave-config-plugin
