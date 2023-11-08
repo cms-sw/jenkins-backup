@@ -2,7 +2,7 @@
 <key\|overrideKey\|keyfile\|keyPath>
 <apiTokenId\|serverAPIUrl\|apiUrl\|apiUri\|apiRateLimitChecker>
 <privateKeyFile\|authorizedKeys\|privateKeyLocation>
-<passwordVariable>
+<passwordVariable\|webhookSecretCredentialsId>
 <tokenUuid>
 >true\|false<
 <[a-zA-Z][^>]*></[a-zA-Z][^>]*>
