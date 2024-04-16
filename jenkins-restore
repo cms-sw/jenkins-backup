@@ -39,7 +39,7 @@ if [ -f ${JENKINS_HOME}/jenkins_prefix ] ; then
   JENKINS_URL="${JENKINS_URL}/${jenkins_prefix}"
 fi
 
-branch=$(${JAVA_CMD} -jar ${JENKINS_HOME}/jenkins-cli.jar -i $LOCALCLI_KEY -s ${LOCAL_JENKINS_URL}/${jenkins_prefix} version)
+#branch=$(${JAVA_CMD} -jar ${JENKINS_HOME}/jenkins-cli.jar -i $LOCALCLI_KEY -s ${LOCAL_JENKINS_URL}/${jenkins_prefix} version)
 branch=$(rpm -q --queryformat '%{VERSION}\n' jenkins)
 if [ "X$branch" = "X" ] ; then
   echo "Error: Unable to find jenkins version"
