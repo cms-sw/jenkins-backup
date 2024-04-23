@@ -6,6 +6,8 @@ USE_BACKUP=false
 LOCALCLI_KEY=${HOME}/.ssh/id_dsa
 BACKUP_REF_DIR="${HOME}/plugin-ref"
 LATEST_PLUGINS=false
+DISABLE_JOBS=true
+DISABLE_NODES=true
 while [[ $# -gt 0 ]] ; do
   opt=$1; shift
   case $opt in
@@ -13,6 +15,8 @@ while [[ $# -gt 0 ]] ; do
     -r|--repository) REPO=$1; shift ;;
     -b|--branch)     DEFAULT_BRANCH=$1; shift;;
     -B|--use-backup) USE_BACKUP=true ;;
+    --do-not-disable-nodes) DISABLE_NODES=false;;
+    --do-not-disable-jobs)  DISABLE_JOSS=false;;
     -k|--key)        LOCALCLI_KEY=$1; shift;;
     -K|--kinit)      KINIT=$1; shift ;;
     -u|--jenkins-url)JENKINS_URL=$1; shift;;
@@ -140,15 +144,19 @@ rm -rf ${JENKINS_PLUGIN_REF}/tmp ${JENKINS_PLUGIN_REF}/deps-plugins.txt ${JENKIN
 rm -f $GIT_DIR/pluginslist.conf $GIT_DIR/plugins-filter.conf $GIT_DIR/plugins-used.conf
 
 #Disable all jobs
-find ${GIT_DIR}/jobs -mindepth 2 -name 'config.xml' -type f | grep -v '/configurations/' | while IFS= read -r file; do
-  sed -i -e 's|<disabled>false|<disabled>true|' "${file}"
-done
+if $DISABLE_JOBS ; then
+  find ${GIT_DIR}/jobs -mindepth 2 -name 'config.xml' -type f | grep -v '/configurations/' | while IFS= read -r file; do
+    sed -i -e 's|<disabled>false|<disabled>true|' "${file}"
+  done
+fi
 
 #disabled all nodes
-DISABLE_MSG="<temporaryOfflineCause class=\"hudson.slaves.OfflineCause\$UserCause\"><timestamp>$(date +%s)</timestamp><description><holder><owner>hudson.slaves.Messages</owner></holder><key>SlaveComputer.DisconnectedBy</key><args><string>localcli</string><string></string></args></description><userId>localcli</userId></temporaryOfflineCause>"
-find ${GIT_DIR}/nodes -mindepth 2 -name 'config.xml' -type f | while IFS= read -r file; do
-  sed -i -e "s|<slave>|<slave>\n  ${DISABLE_MSG}|" "${file}"
-done
+if $DISABLE_NODES ; then
+  DISABLE_MSG="<temporaryOfflineCause class=\"hudson.slaves.OfflineCause\$UserCause\"><timestamp>$(date +%s)</timestamp><description><holder><owner>hudson.slaves.Messages</owner></holder><key>SlaveComputer.DisconnectedBy</key><args><string>localcli</string><string></string></args></description><userId>localcli</userId></temporaryOfflineCause>"
+  find ${GIT_DIR}/nodes -mindepth 2 -name 'config.xml' -type f | while IFS= read -r file; do
+    sed -i -e "s|<slave>|<slave>\n  ${DISABLE_MSG}|" "${file}"
+  done
+fi
 
 #Sync jenkins configuration back to jenkins home
 rsync -av --delete ${JENKINS_PLUGIN_REF}/ ${JENKINS_HOME}/plugins/
