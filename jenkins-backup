@@ -197,13 +197,13 @@ if [ -d $GIT_DIR/.jenkins-backup ] ; then
 fi
 
 grep -Ri '<[^>]*\(token\|pass\|secret\|api\|key\)[^>]*>\|>{[^}]*}<' --exclude-dir=.git --include='*.xml' | sed 's|.xml:.*|.xml|' | sort | uniq | while IFS= read -r file; do
-  while [ $(jobs -p | wc -l) -ge ${NUM_PROC} ] ; do true ; done
+  while [ $(jobs -p | wc -l) -ge ${NUM_PROC} ] ; do sleep 0.2 ; done
   ${script_dir}/jenkins-encrypt.py ${FORCE_ENCRYPT} -p -P $LOCALCLI_KEY "${file}" &
 done
 
 #Encrypt non-xml files
 grep -v '\.xml$' files.conf | while IFS= read -r file; do
-  while [ $(jobs -p | wc -l) -ge ${NUM_PROC} ] ; do true ; done
+  while [ $(jobs -p | wc -l) -ge ${NUM_PROC} ] ; do sleep 0.2 ; done
   ${script_dir}/jenkins-encrypt.py ${FORCE_ENCRYPT} -P $LOCALCLI_KEY "${file}" &
 done
 
