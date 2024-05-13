@@ -11,7 +11,7 @@ LOCALCLI_KEY="${HOME}/.ssh/id_dsa"
 FORCE_PUSH_TIME=3600
 FORCE_ENCRYPT=""
 EXCLUDE_FILES="secrets/cmssdt-es-secret secrets/github_hook_secret_cmsbot"
-NUM_PROC=$(getconf _NPROCESSORS_ONLN)
+NUM_PROC=1
 RESET_BACKUP=false
 while [[ $# -gt 0 ]] ; do
   opt=$1; shift
@@ -33,7 +33,7 @@ while [[ $# -gt 0 ]] ; do
     -n|--jobs)         NUM_PROC=$1; shift;;
   esac
 done
-if [ $NUM_PROC -lt 2 ] ; then NUM_PROC=2; fi
+if [ $NUM_PROC -lt 1 ] ; then NUM_PROC=1; fi
 if [ "X${BACK_REPO}" = "X" ] ; then
   echo "ERROR: Missing backup repository. Usage $0 -r https://github.com/user/repo"
   exit 1
@@ -197,14 +197,22 @@ if [ -d $GIT_DIR/.jenkins-backup ] ; then
 fi
 
 grep -Ri '<[^>]*\(token\|pass\|secret\|api\|key\)[^>]*>\|>{[^}]*}<' --exclude-dir=.git --include='*.xml' | sed 's|.xml:.*|.xml|' | sort | uniq | while IFS= read -r file; do
-  while [ $(jobs -p | wc -l) -ge ${NUM_PROC} ] ; do sleep 0.2 ; done
-  ${script_dir}/jenkins-encrypt.py ${FORCE_ENCRYPT} -p -P $LOCALCLI_KEY "${file}" &
+  if [ ${NUM_PROC} -gt 1 ] ; then
+    while [ $(jobs -p | wc -l) -ge ${NUM_PROC} ] ; do sleep 0.2 ; done
+    ${script_dir}/jenkins-encrypt.py ${FORCE_ENCRYPT} -p -P $LOCALCLI_KEY "${file}" &
+  else
+    ${script_dir}/jenkins-encrypt.py ${FORCE_ENCRYPT} -p -P $LOCALCLI_KEY "${file}"
+  fi
 done
 
 #Encrypt non-xml files
 grep -v '\.xml$' files.conf | while IFS= read -r file; do
-  while [ $(jobs -p | wc -l) -ge ${NUM_PROC} ] ; do sleep 0.2 ; done
-  ${script_dir}/jenkins-encrypt.py ${FORCE_ENCRYPT} -P $LOCALCLI_KEY "${file}" &
+  if [ ${NUM_PROC} -gt 1 ] ; then
+    while [ $(jobs -p | wc -l) -ge ${NUM_PROC} ] ; do sleep 0.2 ; done
+    ${script_dir}/jenkins-encrypt.py ${FORCE_ENCRYPT} -P $LOCALCLI_KEY "${file}" &
+  else
+    ${script_dir}/jenkins-encrypt.py ${FORCE_ENCRYPT} -P $LOCALCLI_KEY "${file}"
+  fi
 done
 
 #Create one file for nextBuildNumbers
@@ -215,8 +223,11 @@ grep '/config\.xml$' files.conf | grep '^jobs/' | sed 's|^jobs/||;s|/config.xml|
   num=$(head -1 "${num_file}")
   echo "$job=$num" >> $GIT_DIR/nextBuildNumber
 done
-#wait for all child process to finish
-wait
+
+if [ ${NUM_PROC} -gt 1 ] ; then
+  #wait for all child process to finish
+  wait
+fi
 rm -f files.conf jenkins-backup-invalid-files.txt
 
 grep -Ri '<[^>]*\(token\|pass\|secret\|api\|key\)[^>]*>' --exclude-dir=.git --include='*.xml' $GIT_DIR | grep '^[^:]*: *<' | grep -v '^[^:]*: *<[^>]*> *$' | while IFS= read -r data ; do
