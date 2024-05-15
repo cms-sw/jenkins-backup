@@ -73,7 +73,7 @@ if [ $(git branch -a | grep "remotes/origin/${GIT_BRANCH}$" | wc -l) -gt 0 ] ; t
   git checkout -q --force $GIT_BRANCH
   git pull origin $GIT_BRANCH
   git reset --hard origin/$GIT_BRANCH
-  git repack -a -d --no-threads
+  git repack -a -d --no-threads || git repack -a -d
 else
   git checkout --orphan ${GIT_BRANCH}
   rm -rf * || true
