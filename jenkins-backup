@@ -74,8 +74,6 @@ if [ $(git branch -a | grep "remotes/origin/${GIT_BRANCH}$" | wc -l) -gt 0 ] ; t
   git pull origin $GIT_BRANCH
   git reset --hard origin/$GIT_BRANCH
   git repack -a -d
-  git gc --aggressive
-  git prune
 else
   git checkout --orphan ${GIT_BRANCH}
   rm -rf * || true
