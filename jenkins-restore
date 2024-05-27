@@ -8,6 +8,7 @@ BACKUP_REF_DIR="${HOME}/plugin-ref"
 LATEST_PLUGINS=false
 DISABLE_JOBS=true
 DISABLE_NODES=true
+USED_PLUGINS=false
 while [[ $# -gt 0 ]] ; do
   opt=$1; shift
   case $opt in
@@ -21,6 +22,7 @@ while [[ $# -gt 0 ]] ; do
     -K|--kinit)      KINIT=$1; shift ;;
     -u|--jenkins-url)JENKINS_URL=$1; shift;;
     -w|--workspace)  BACKUP_REF_DIR=$1; shift;;
+    -U|--used-plugins ) USED_PLUGINS=true;
     -L|--latest-plugins) LATEST_PLUGINS=true ;;
   esac
 done
@@ -123,23 +125,29 @@ MASTER_EXEC=$(getconf _NPROCESSORS_ONLN)
 if [ $MASTER_EXEC -lt 2 ] ; then MASTER_EXEC=2; fi
 sed -i -e "s|<numExecutors>[0-9]*</numExecutors>|<numExecutors>${MASTER_EXEC}</numExecutors>|" ${GIT_DIR}/config.xml
 
-#Find jenkins plugins in use
-rm -f $GIT_DIR/plugins-used.conf ; touch $GIT_DIR/plugins-used.conf
-find $GIT_DIR -name '*.xml' -type f | while IFS= read -r file; do
-  (grep -a ' plugin=' "${file}" | sed 's|.* plugin="||;s|@.*||' | grep -v '^pipeline-' || true) >> $GIT_DIR/plugins-used.conf
-done
+if $USED_PLUGINS ; then
+  #Find jenkins plugins in use
+  rm -f $GIT_DIR/plugins-used.conf ; touch $GIT_DIR/plugins-used.conf
+  find $GIT_DIR -name '*.xml' -type f | while IFS= read -r file; do
+    (grep -a ' plugin=' "${file}" | sed 's|.* plugin="||;s|@.*||') >> $GIT_DIR/plugins-used.conf
+  done
+  grep -E '^blueocean(|-.*):' | sed -e 's|:.*$||' >> $GIT_DIR/plugins-used.conf || true
+  grep -E '^(pipeline-build-step|pipeline-stage-view):' | sed -e 's|:.*$||' >> $GIT_DIR/plugins-used.conf || true
+else
+  sed -e 's|:.*$||' $GIT_DIR/pluginslist.conf > $GIT_DIR/plugins-used.conf
+fi
 
 #Force install default plugins
-if [ -e ${script_dir}/etc/default_plugins.txt ] ; then cat ${script_dir}/etc/default_plugins.txt >> $GIT_DIR/plugins-used.conf ; fi
+[ -e ${script_dir}/etc/default_plugins.txt ] && cat ${script_dir}/etc/default_plugins.txt >> $GIT_DIR/plugins-used.conf
 
 rm -rf $GIT_DIR/plugins-filter.conf && touch $GIT_DIR/plugins-filter.conf
 for p in $(cat $GIT_DIR/plugins-used.conf | sort -u) ; do
   grep "^$p:" $GIT_DIR/pluginslist.conf >> $GIT_DIR/plugins-filter.conf || true
 done
-if $LATEST_PLUGINS ; then sed -i -e 's|:.*|:latest|' $GIT_DIR/plugins-filter.conf ; fi
 
+if $LATEST_PLUGINS ; then sed -i -e 's|:.*|:latest|' $GIT_DIR/plugins-filter.conf ; fi
 rm -rf ${JENKINS_PLUGIN_REF}/*.lock
-${script_dir}/install-plugins.sh $GIT_DIR/pluginslist.conf $GIT_DIR/plugins-filter.conf
+${script_dir}/install-plugins.sh $GIT_DIR/pluginslist.conf $GIT_DIR/plugins-filter.conf >install-plugin.log 2>&1
 rm -rf ${JENKINS_PLUGIN_REF}/tmp ${JENKINS_PLUGIN_REF}/deps-plugins.txt ${JENKINS_PLUGIN_REF}/deps-plugins.txt.uniq
 rm -f $GIT_DIR/pluginslist.conf $GIT_DIR/plugins-filter.conf $GIT_DIR/plugins-used.conf
 
