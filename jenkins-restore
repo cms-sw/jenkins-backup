@@ -22,7 +22,7 @@ while [[ $# -gt 0 ]] ; do
     -K|--kinit)      KINIT=$1; shift ;;
     -u|--jenkins-url)JENKINS_URL=$1; shift;;
     -w|--workspace)  BACKUP_REF_DIR=$1; shift;;
-    -U|--used-plugins ) USED_PLUGINS=true;
+    -U|--used-plugins ) USED_PLUGINS=true;;
     -L|--latest-plugins) LATEST_PLUGINS=true ;;
   esac
 done
